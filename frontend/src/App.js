@@ -1,23 +1,18 @@
-import logo from './logo.svg';
 import './App.css';
+import { GoogleLoginBtn } from './components/GoogleLoginBtn';
+import { getToken, Logout } from './utils/Authenticate';
 
 function App() {
+
+  const ACCESS_TOKEN = getToken()
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      {!ACCESS_TOKEN &&
+        <GoogleLoginBtn />
+      }
+      {ACCESS_TOKEN &&
+        <button onClick={Logout}>로그아웃</button>
+      }
     </div>
   );
 }
