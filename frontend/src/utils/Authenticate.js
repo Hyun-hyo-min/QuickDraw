@@ -1,17 +1,17 @@
 export const getToken = () => {
-	const myToken = JSON.parse(localStorage.getItem('token'));
+	const myToken = JSON.parse(localStorage.getItem('access_token'));
     
 	if (!myToken)
 		return null;
 
 	if (myToken.expire <= Date.now()){
-		localStorage.removeItem('token')
+		localStorage.removeItem('access_token')
 		return null;
 	}
 	return myToken.token
 }
 
 export const Logout = () => {
-	localStorage.removeItem('token');
+	localStorage.removeItem('access_token');
 	window.location.reload();
 }

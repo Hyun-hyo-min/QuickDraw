@@ -25,7 +25,7 @@ export const GoogleLoginBtn = () => {
                     token: response.data,
                     expire: Date.now() + 60 * 60 * 1000
                 };
-                localStorage.setItem('token', JSON.stringify(accessToken));
+                localStorage.setItem('access_token', JSON.stringify(accessToken));
                 window.location.reload()
             })
             .catch(error => {
@@ -39,7 +39,7 @@ export const GoogleLoginBtn = () => {
                 onError={() => {
                     console.log("Login Failed");
                 }}
-                width='300px' //버튼 크기 지정
+                width='300px'
             />
         </>
     )

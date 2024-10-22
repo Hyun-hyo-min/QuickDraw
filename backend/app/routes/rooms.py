@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from database.connection import get_db_session
 from auth.jwt import get_current_user
 from models.rooms import Room, Player
-from schemas.rooms import RoomCreateRequest
+from schemas.rooms import RoomCreateRequest, RoomResponse
 from typing import List
 
 room_router = APIRouter(
@@ -87,7 +87,7 @@ async def room_info(room_id: int, session: AsyncSession = Depends(get_db_session
     }
 
 
-@room_router.get("/", response_model=List[Room])
+@room_router.get("/", response_model=List[RoomResponse])
 async def get_rooms(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -98,13 +98,27 @@ async def get_rooms(
 
     result = await session.execute(
         select(Room)
+        .options(selectinload(Room.players))
         .offset(offset)
         .limit(limit)
+        .order_by(Room.id.desc())
     )
     rooms = result.scalars().all()
 
     if not rooms:
         raise HTTPException(status_code=404, detail="No rooms found.")
+
+    rooms = [
+        RoomResponse(
+            id=room.id,
+            name=room.name,
+            host=room.host,
+            status=room.status,
+            max_players=room.max_players,
+            current_players=len(room.players)
+        )
+        for room in rooms
+    ]
 
     return rooms
 
