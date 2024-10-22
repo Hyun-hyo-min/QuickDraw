@@ -1,14 +1,16 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from database.connection import conn
+from database.connection import init_db, close_db, engine
 from routes.users import user_router
+from routes.rooms import room_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    conn()
+    await init_db(engine)
     yield
+    await close_db(engine)
 
 app = FastAPI(lifespan=lifespan)
 
@@ -25,6 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(user_router, prefix="/api/v1/user")
+app.include_router(room_router, prefix="/api/v1/room")
 
 if __name__ == "__main__":
     import uvicorn
