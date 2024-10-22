@@ -9,7 +9,7 @@ export const GoogleLoginBtn = () => {
 
         const data = {
             email: decode_token.email,
-            username: decode_token.family_name + decode_token.given_name,
+            name: decode_token.family_name + decode_token.given_name,
             exp: decode_token.exp
         }
 
@@ -21,11 +21,11 @@ export const GoogleLoginBtn = () => {
             }
         )
             .then(response => {
-                const myToken = {
+                const accessToken = {
                     token: response.data,
                     expire: Date.now() + 60 * 60 * 1000
                 };
-                localStorage.setItem('token', JSON.stringify(myToken));
+                localStorage.setItem('token', JSON.stringify(accessToken));
                 window.location.reload()
             })
             .catch(error => {
