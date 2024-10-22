@@ -1,4 +1,4 @@
-from fastapi import APIRouter, WebSocket, HTTPException, Depends
+from fastapi import APIRouter, Query, WebSocket, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -6,6 +6,7 @@ from database.connection import get_db_session
 from auth.jwt import get_current_user
 from models.rooms import Room, Player
 from schemas.rooms import RoomCreateRequest
+from typing import List
 
 room_router = APIRouter(
     tags=["Room"],
@@ -18,19 +19,16 @@ async def create_room(
     email: str = Depends(get_current_user),
     session: AsyncSession = Depends(get_db_session)
 ):
-    result = await session.execute(select(Room).where(Room.host == email))
-    existing_room = result.scalars().first()
+    result = await session.execute(select(Player).where(Player.email == email))
+    existing_player = result.scalars().first()
 
-    if existing_room:
-        raise HTTPException(status_code=400, detail="Host already has a room.")
+    if existing_player:
+        raise HTTPException(
+            status_code=400, detail="User already in the room.")
 
     new_room = Room(name=body.room_name, host=email)
-    session.add(new_room)
-    await session.commit()
-    await session.refresh(new_room)
-
-    new_player = Player(email=email, room_id=new_room.id)
-    session.add(new_player)
+    new_player = Player(email=email, room=new_room)
+    session.add_all([new_room, new_player])
 
     await session.commit()
     await session.refresh(new_room)
@@ -60,7 +58,7 @@ async def join_room(
     existing_player = result.scalars().first()
     if existing_player:
         raise HTTPException(
-            status_code=400, detail="Player already in the room.")
+            status_code=400, detail="User already in the room.")
 
     new_player = Player(email=email, room_id=room_id)
     session.add(new_player)
@@ -89,6 +87,28 @@ async def room_info(room_id: int, session: AsyncSession = Depends(get_db_session
     }
 
 
+@room_router.get("/", response_model=List[Room])
+async def get_rooms(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    session: AsyncSession = Depends(get_db_session),
+):
+    offset = (page - 1) * page_size
+    limit = page_size
+
+    result = await session.execute(
+        select(Room)
+        .offset(offset)
+        .limit(limit)
+    )
+    rooms = result.scalars().all()
+
+    if not rooms:
+        raise HTTPException(status_code=404, detail="No rooms found.")
+
+    return rooms
+
+
 @room_router.delete("/{room_id}")
 async def delete_room(room_id: int, session: AsyncSession = Depends(get_db_session)):
     room = await session.get(Room, room_id)
@@ -100,4 +120,3 @@ async def delete_room(room_id: int, session: AsyncSession = Depends(get_db_sessi
     await session.commit()
 
     return {"message": f"room {room_id} deleted"}
-
