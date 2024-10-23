@@ -38,8 +38,8 @@ function RoomList() {
 
     return (
         <div>
-            <h2>Available Rooms</h2>
             <CreateRoom />
+            <h2>Available Rooms</h2>
             <ul>
                 {rooms.length > 0 ? (
                     rooms.map(room => (
