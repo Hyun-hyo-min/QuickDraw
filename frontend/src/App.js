@@ -1,5 +1,4 @@
 import './App.css';
-import CreateRoom from './components/CreateRoom';
 import RoomList from './components/RoomList';
 import { GoogleLoginBtn } from './components/GoogleLoginBtn';
 import { getToken, Logout } from './utils/Authenticate';
@@ -17,8 +16,7 @@ function App() {
         
         <Routes>
           <Route path="/" element={<RoomList />} />
-          <Route path="/create-room" element={<CreateRoom />} />
-          <Route path="/room/:roomId" element={<RoomPage />} />
+          <Route path="/rooms/:roomId" element={<RoomPage />} />
         </Routes>
       </div>
     </Router>

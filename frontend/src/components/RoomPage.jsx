@@ -7,15 +7,15 @@ function RoomPage() {
     const [roomDetails, setRoomDetails] = useState(null);
     const canvasRef = useRef(null);
     const [ctx, setCtx] = useState(null);
-    const [socket, setSocket] = useState(null);
+    const socketRef = useRef(null);
+    const prevCoordsRef = useRef({ prevX: 0, prevY: 0 });
     const navigate = useNavigate();
 
     const getUserEmailFromToken = () => {
         const token = localStorage.getItem('access_token');
         if (!token) return null;
 
-        const parsedToken = JSON.parse(token);
-        const accessToken = parsedToken?.token?.access_token;
+        const accessToken = token;
         const payload = JSON.parse(atob(accessToken.split('.')[1]));
         return payload.email;
     };
@@ -23,16 +23,20 @@ function RoomPage() {
     const currentUser = getUserEmailFromToken();
 
     useEffect(() => {
-        // 방 정보 가져오기
-        const fetchRoomDetails = async () => {
+        // 방 정보 및 세션 생성
+        const initializeRoom = async () => {
             try {
-                const response = await axiosInstance.get(`/room/${roomId}`);
-                setRoomDetails(response.data);
+                // 방 정보 가져오기
+                const roomResponse = await axiosInstance.get(`/rooms/${roomId}`);
+                setRoomDetails(roomResponse.data);
+
+                // 세션 생성하기
+                await axiosInstance.post(`/rooms/session/${roomId}`);
             } catch (error) {
-                console.error('Error fetching room details:', error.response?.data?.detail);
+                console.error('Error initializing room:', error.response?.data?.detail);
             }
         };
-        fetchRoomDetails();
+        initializeRoom();
     }, [roomId]);
 
     useEffect(() => {
@@ -45,28 +49,40 @@ function RoomPage() {
 
     useEffect(() => {
         // WebSocket 연결 설정
-        if (!ctx) return;
+        if (!ctx || !roomDetails) return;
 
-        const ws = new WebSocket(`ws://localhost:8000/ws/room/${roomId}`);
-        setSocket(ws);
+        const ws = new WebSocket(`ws://localhost:8000/ws/rooms/${roomId}`);
+        socketRef.current = ws;
+
+        ws.onopen = () => {
+            console.log('WebSocket connection opened');
+        };
 
         // WebSocket 메시지 수신 처리
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.type === 'draw') {
-                const { x, y } = data;
+                const { x, y, prevX, prevY } = data;
                 ctx.beginPath();
-                ctx.moveTo(data.prevX, data.prevY);
+                ctx.moveTo(prevX, prevY);
                 ctx.lineTo(x, y);
                 ctx.stroke();
             }
         };
 
-        // WebSocket 연결 해제 처리
+        ws.onclose = () => {
+            console.log('WebSocket connection closed');
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        // 컴포넌트 언마운트 시 WebSocket 연결 해제
         return () => {
             ws.close();
         };
-    }, [roomId, ctx]);
+    }, [roomId, ctx, roomDetails]);
 
     const handleMouseMove = (event) => {
         if (event.buttons !== 1 || !ctx) return; // 마우스 왼쪽 버튼이 눌려있지 않으면 무시
@@ -75,27 +91,52 @@ function RoomPage() {
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
 
+        const { prevX, prevY } = prevCoordsRef.current;
+
+        ctx.beginPath();
+        ctx.moveTo(prevX, prevY);
         ctx.lineTo(x, y);
         ctx.stroke();
 
         // WebSocket을 통해 그림 데이터 전송
-        if (socket) {
-            socket.send(
-                JSON.stringify({ type: 'draw', x, y, prevX: ctx.prevX, prevY: ctx.prevY })
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+            socketRef.current.send(
+                JSON.stringify({ type: 'draw', x, y, prevX, prevY })
             );
         }
 
         // 이전 좌표 저장
-        ctx.prevX = x;
-        ctx.prevY = y;
+        prevCoordsRef.current.prevX = x;
+        prevCoordsRef.current.prevY = y;
+    };
+
+    const handleMouseDown = (event) => {
+        if (!ctx) return; // ctx가 null인지 확인
+
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        // 이전 좌표 초기화
+        prevCoordsRef.current.prevX = x;
+        prevCoordsRef.current.prevY = y;
     };
 
     const handleDeleteRoom = async () => {
         try {
-            await axiosInstance.delete(`/room/${roomId}`);
+            await axiosInstance.delete(`/rooms/${roomId}`);
             navigate('/');  // 방을 삭제한 후 메인 페이지로 이동
         } catch (error) {
             console.error('Error deleting room:', error.response?.data?.detail);
+        }
+    };
+
+    const handleQuitRoom = async () => {
+        try {
+            await axiosInstance.delete(`/rooms/${roomId}/players`);
+            navigate('/');  // 방을 나간 후 메인 페이지로 이동
+        } catch (error) {
+            console.error('Error quitting room:', error.response?.data?.detail);
         }
     };
 
@@ -112,12 +153,15 @@ function RoomPage() {
                 <button onClick={handleDeleteRoom}>Delete Room</button>
             )}
 
+            <button onClick={handleQuitRoom}>Quit Room</button>
+
             <div className="canvas-container">
                 <div className="drawing-box">
                     <canvas
                         ref={canvasRef}
                         width={800}
                         height={600}
+                        onMouseDown={handleMouseDown}
                         onMouseMove={handleMouseMove}
                         style={{ border: '1px solid black' }}
                     />

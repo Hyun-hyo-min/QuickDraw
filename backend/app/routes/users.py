@@ -4,11 +4,11 @@ from auth.jwt import create_access_token
 from database.connection import get_db_session
 from models.users import User, TokenResponse
 
-user_router = APIRouter(
+router = APIRouter(
     tags=["User"],
 )
 
-@user_router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse)
 async def login(body: User, session: AsyncSession = Depends(get_db_session)) -> dict:
     try:
         existing_user = await session.get(User, body.email)

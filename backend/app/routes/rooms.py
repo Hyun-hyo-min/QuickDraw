@@ -1,22 +1,21 @@
-from fastapi import APIRouter, Query, Depends, HTTPException, WebSocket, WebSocketDisconnect
+import json
+from typing import Annotated
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+from redis import asyncio as aioredis
 from database.connection import get_db_session
 from auth.jwt import get_current_user
 from models.rooms import Room, Player
 from schemas.rooms import RoomCreateRequest, RoomResponse
-from typing import List
-from collections import defaultdict
+from service.redis import get_redis_pool
 
-room_router = APIRouter(
-    tags=["Room"],
-)
-
-connections = defaultdict(list)
+router = APIRouter()
 
 
-@room_router.post("/")
+@router.post("/")
 async def create_room(
     body: RoomCreateRequest,
     email: str = Depends(get_current_user),
@@ -29,17 +28,17 @@ async def create_room(
         raise HTTPException(
             status_code=400, detail="User already in the room.")
 
-    new_room = Room(name=body.room_name, host=email)
-    new_player = Player(email=email, room=new_room)
-    session.add_all([new_room, new_player])
+    room = Room(name=body.room_name, host=email)
+    player = Player(email=email, room=room)
+    session.add_all([room, player])
 
     await session.commit()
-    await session.refresh(new_room)
+    await session.refresh(room)
 
-    return {"message": "Room created", "room_id": new_room.id}
+    return {"message": "Room created", "room_id": room.id}
 
 
-@room_router.post("/join/{room_id}")
+@router.post("/{room_id}/players")
 async def join_room(room_id: int, email: str = Depends(get_current_user), session: AsyncSession = Depends(get_db_session)):
     result = await session.execute(
         select(Room)
@@ -67,7 +66,27 @@ async def join_room(room_id: int, email: str = Depends(get_current_user), sessio
     return {"message": f"{email} joined the room"}
 
 
-@room_router.get("/{room_id}")
+@router.delete("/{room_id}/players")
+async def quit_room(room_id: int, email: str = Depends(get_current_user), session: AsyncSession = Depends(get_db_session)):
+    result = await session.execute(
+        select(Player)
+        .where(Player.email == email)
+    )
+    player = result.scalars().first()
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found.")
+
+    if room_id != player.room_id:
+        raise HTTPException(
+            status_code=400, detail="Player is not in the" f"{room_id} room.")
+
+    await session.delete(player)
+    await session.commit()
+
+    return {"message": f"{email} quited the room"}
+
+
+@router.get("/{room_id}")
 async def room_info(room_id: int, session: AsyncSession = Depends(get_db_session)):
     result = await session.execute(
         select(Room)
@@ -86,7 +105,7 @@ async def room_info(room_id: int, session: AsyncSession = Depends(get_db_session
     }
 
 
-@room_router.get("/")
+@router.get("/")
 async def get_rooms(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -127,7 +146,7 @@ async def get_rooms(
     return {"rooms": rooms, "total_pages": total_pages}
 
 
-@room_router.delete("/{room_id}")
+@router.delete("/{room_id}")
 async def delete_room(room_id: int, email: str = Depends(get_current_user), session: AsyncSession = Depends(get_db_session)):
     room = await session.get(Room, room_id)
 
@@ -144,17 +163,15 @@ async def delete_room(room_id: int, email: str = Depends(get_current_user), sess
     return {"message": f"room {room_id} deleted"}
 
 
-@room_router.websocket("/ws/room/{room_id}")
-async def websocket_endpoint(websocket: WebSocket, room_id: int):
-    await websocket.accept()
-    connections[room_id].append(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            for connection in connections[room_id]:
-                if connection != websocket:
-                    await connection.send_text(data)
-    except WebSocketDisconnect:
-        connections[room_id].remove(websocket)
-        if not connections[room_id]:
-            del connections[room_id]
+@router.post("/session/{room_id}")
+async def create_room_session(room_id, redis: Annotated[aioredis.Redis, Depends(get_redis_pool)]):
+    session_id = room_id
+
+    session_data = {
+        'players': [],
+        'menu': [],
+        'expires_at': (datetime.now() + timedelta(minutes=5)).isoformat()
+    }
+
+    await redis.set(session_id, json.dumps(session_data), ex=300)
+    return {"url": f"/ws/rooms/{room_id}"}

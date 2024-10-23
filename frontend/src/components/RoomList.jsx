@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../apis/axiosInstance';
+import CreateRoom from './CreateRoom';
 
 function RoomList() {
     const [rooms, setRooms] = useState([]);
@@ -12,8 +13,7 @@ function RoomList() {
     useEffect(() => {
         const fetchRooms = async () => {
             try {
-                const response = await axiosInstance.get(`/room?page=${page}&page_size=${pageSize}`);
-                console.log('Fetched rooms:', response.data);
+                const response = await axiosInstance.get(`/rooms?page=${page}&page_size=${pageSize}`);
                 setRooms(response.data.rooms || []);
                 setTotalPages(response.data.total_pages);
             } catch (error) {
@@ -25,8 +25,8 @@ function RoomList() {
 
     const handleJoinRoom = async (roomId) => {
         try {
-            await axiosInstance.post(`/room/join/${roomId}`);
-            navigate(`/room/${roomId}`);
+            await axiosInstance.post(`/rooms/${roomId}/players`);
+            navigate(`/rooms/${roomId}`);
         } catch (error) {
             console.error('Error joining room:', error.response?.data?.detail || 'Unknown error');
         }
@@ -39,6 +39,7 @@ function RoomList() {
     return (
         <div>
             <h2>Available Rooms</h2>
+            <CreateRoom />
             <ul>
                 {rooms.length > 0 ? (
                     rooms.map(room => (
@@ -54,15 +55,15 @@ function RoomList() {
 
             {/* 페이지네이션 버튼 */}
             <div>
-                <button 
-                    onClick={() => handlePageChange(page - 1)} 
+                <button
+                    onClick={() => handlePageChange(page - 1)}
                     disabled={page === 1}
                 >
                     Previous
                 </button>
                 <span> Page {page} of {totalPages} </span>
-                <button 
-                    onClick={() => handlePageChange(page + 1)} 
+                <button
+                    onClick={() => handlePageChange(page + 1)}
                     disabled={page === totalPages}
                 >
                     Next

@@ -2,8 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database.connection import init_db, close_db, engine
-from routers.users import user_router
-from routers.rooms import room_router
+from routes.routers import router
 
 
 @asynccontextmanager
@@ -26,8 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(user_router, prefix="/api/v1/user")
-app.include_router(room_router, prefix="/api/v1/room")
+app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn
