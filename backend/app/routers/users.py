@@ -21,7 +21,6 @@ async def login(body: User, session: AsyncSession = Depends(get_db_session)) -> 
             await session.refresh(body)
             access_token = create_access_token(body.email, body.exp)
         
-        print(access_token)
         return {
             "access_token": access_token,
             "token_type": "Bearer"
