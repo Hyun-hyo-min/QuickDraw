@@ -8,8 +8,8 @@ from sqlalchemy.orm import selectinload
 from redis import asyncio as aioredis
 from database.connection import get_db_session
 from auth.jwt import get_current_user
-from models.rooms import Room, Player
-from schemas.rooms import RoomCreateRequest, RoomResponse
+from models.models import Room, Player
+from schemas.schemas import RoomCreateRequest, RoomResponse
 from service.redis import get_redis_pool
 
 router = APIRouter()
@@ -164,14 +164,15 @@ async def delete_room(room_id: int, email: str = Depends(get_current_user), sess
 
 
 @router.post("/session/{room_id}")
-async def create_room_session(room_id, redis: Annotated[aioredis.Redis, Depends(get_redis_pool)]):
-    session_id = room_id
+async def create_room_session(
+    room_id: int,
+    redis: Annotated[aioredis.Redis, Depends(get_redis_pool)],
+    email: str = Depends(get_current_user)
+):
+    session_id = str(room_id)
+    session_key = f"session:{session_id}:clients"
 
-    session_data = {
-        'players': [],
-        'menu': [],
-        'expires_at': (datetime.now() + timedelta(minutes=5)).isoformat()
-    }
+    await redis.sadd(session_key, email)
+    await redis.expire(session_key, 300)
 
-    await redis.set(session_id, json.dumps(session_data), ex=300)
-    return {"url": f"/ws/rooms/{room_id}"}
+    return {"url": f"/ws/rooms/{room_id}/{email}"}

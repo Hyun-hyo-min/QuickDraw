@@ -1,17 +1,12 @@
-from enum import Enum
-from typing import List, Optional
+from typing import List
 from pydantic import EmailStr
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import Field, Relationship
+from models.bases import UserBase, RoomBase, PlayerBase
+from models.enums import RoomStatus
 
 
-class RoomStatus(str, Enum):
-    WAITING = "waiting"
-    PLAYING = "playing"
-
-
-class RoomBase(SQLModel):
-    name: str
-    max_players: int = 8
+class User(UserBase, table=True):
+    email: EmailStr = Field(primary_key=True)
 
 
 class Room(RoomBase, table=True):
@@ -25,12 +20,8 @@ class Room(RoomBase, table=True):
     )
 
 
-class PlayerBase(SQLModel):
-    email: str
-
-
 class Player(PlayerBase, table=True):
     id: int = Field(primary_key=True)
     email: EmailStr = Field(foreign_key='user.email')
     room_id: int = Field(foreign_key="room.id")
-    room: Optional[Room] = Relationship(back_populates="players")
+    room: Room = Relationship(back_populates="players")
