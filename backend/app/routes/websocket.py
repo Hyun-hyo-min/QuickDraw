@@ -18,22 +18,18 @@ async def room_websocket_endpoint(
     redis: Annotated[aioredis.Redis, Depends(get_redis_pool)]
 ):
     try:
-        # Redis에서 세션 데이터 가져오기
         session_data = await redis.get(room_id)
         if not session_data:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             raise HTTPException(status_code=404, detail="Session not found")
         session_data = json.loads(session_data)
 
-        # 방에 인원이 가득 찼는지 확인
         if len(session_data["players"]) >= 8:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             raise HTTPException(status_code=403, detail="Session is full")
 
-        # WebSocket 연결 수락
         await websocket.accept()
 
-        # 클라이언트를 ws_manager에 추가
         try:
             ws_manager.add_client(room_id, websocket)
         except MaximumSessionReachException:
@@ -43,7 +39,6 @@ async def room_websocket_endpoint(
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             raise HTTPException(status_code=403, detail="Maximum number of connections per session exceeded")
 
-        # 세션에 플레이어 추가 및 만료 시간 업데이트
         await add_player_to_session(session_data, websocket.client)
         await update_session_expiration(session_data)
         await redis.set(
@@ -52,33 +47,28 @@ async def room_websocket_endpoint(
             ex=(datetime.fromisoformat(session_data["expires_at"]) - datetime.now()).seconds
         )
 
-        # Redis Pub/Sub 설정
         pubsub = redis.pubsub()
         await pubsub.subscribe(room_id)
 
         async def receive_messages():
             try:
                 while True:
-                    # 클라이언트로부터 메시지 수신
                     received_data = await websocket.receive_text()
-                    # Redis 채널에 메시지 발행
                     await redis.publish(room_id, received_data)
             except WebSocketDisconnect:
                 pass
             except Exception as e:
-                print(f"메시지 수신 중 오류 발생: {e}")
+                print(f"Error while receiving messages: {e}")
 
         async def send_messages():
             try:
                 async for message in pubsub.listen():
                     if message['type'] == 'message':
                         data = message['data']
-                        # 클라이언트에게 메시지 전송
                         await websocket.send_text(data.decode('utf-8'))
             except Exception as e:
                 print(f"메시지 전송 중 오류 발생: {e}")
 
-        # 수신 및 전송 태스크 동시 실행
         receive_task = asyncio.create_task(receive_messages())
         send_task = asyncio.create_task(send_messages())
 

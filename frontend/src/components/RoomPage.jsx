@@ -40,12 +40,19 @@ function RoomPage() {
     }, [roomId]);
 
     useEffect(() => {
-        if (canvasRef.current) {
+        if (roomDetails && canvasRef.current) {
             const canvas = canvasRef.current;
             const context = canvas.getContext('2d');
-            setCtx(context);
+            if (context) {
+                setCtx(context);
+                console.log('Canvas context initialized');
+            } else {
+                console.error('Failed to get canvas context');
+            }
+        } else {
+            console.error('Canvas element not found');
         }
-    }, []);
+    }, [roomDetails]);
 
     useEffect(() => {
         // WebSocket 연결 설정
@@ -60,6 +67,7 @@ function RoomPage() {
 
         // WebSocket 메시지 수신 처리
         ws.onmessage = (event) => {
+            console.log('Received WebSocket message:', event.data);
             const data = JSON.parse(event.data);
             if (data.type === 'draw') {
                 const { x, y, prevX, prevY } = data;
@@ -82,7 +90,7 @@ function RoomPage() {
         return () => {
             ws.close();
         };
-    }, [roomId, ctx, roomDetails]);
+    }, [roomId, roomDetails]);
 
     const handleMouseMove = (event) => {
         if (event.buttons !== 1 || !ctx) return; // 마우스 왼쪽 버튼이 눌려있지 않으면 무시
@@ -100,9 +108,9 @@ function RoomPage() {
 
         // WebSocket을 통해 그림 데이터 전송
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-            socketRef.current.send(
-                JSON.stringify({ type: 'draw', x, y, prevX, prevY })
-            );
+            const drawingData = { type: 'draw', x, y, prevX, prevY };
+            console.log('Sending drawing data via WebSocket:', drawingData);
+            socketRef.current.send(JSON.stringify(drawingData));
         }
 
         // 이전 좌표 저장
@@ -111,7 +119,7 @@ function RoomPage() {
     };
 
     const handleMouseDown = (event) => {
-        if (!ctx) return; // ctx가 null인지 확인
+        if (!ctx) return;
 
         const rect = canvasRef.current.getBoundingClientRect();
         const x = event.clientX - rect.left;
