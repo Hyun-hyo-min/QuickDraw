@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../apis/axiosInstance';
 
 function CreateRoom() {
     const [roomName, setRoomName] = useState('');
+    const navigate = useNavigate();
 
     const handleCreateRoom = async (e) => {
         e.preventDefault();
 
         try {
-            const response = await axiosInstance.post('/room', {
+            const response = await axiosInstance.post('/rooms', {
                 room_name: roomName
             });
-            alert('Room created: ' + response.data.room_id);
+            const roomId = response.data.room_id;
+            navigate(`/rooms/${roomId}`)
         } catch (error) {
             console.error('Error creating room:', error.response.data.detail);
         }

@@ -1,6 +1,6 @@
 import { GoogleLogin } from '@react-oauth/google'
-import axios from 'axios'
 import { jwtDecode } from 'jwt-decode'
+import axiosInstance from '../apis/axiosInstance';
 import React from 'react'
 
 export const GoogleLoginBtn = () => {
@@ -13,7 +13,7 @@ export const GoogleLoginBtn = () => {
             exp: decode_token.exp
         }
 
-        axios.post("http://localhost:8000/api/v1/user/login", data,
+        axiosInstance.post("/users/login", data,
             {
                 headers: {
                     'Content-Type': 'application/json'
