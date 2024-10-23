@@ -17,6 +17,7 @@ class RoomBase(SQLModel):
 class Room(RoomBase, table=True):
     id: int = Field(primary_key=True)
     host: EmailStr = Field(foreign_key='user.email')
+    name: str
     status: RoomStatus = Field(default=RoomStatus.WAITING)
     players: List["Player"] = Relationship(
         back_populates="room",

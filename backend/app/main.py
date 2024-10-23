@@ -2,8 +2,8 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database.connection import init_db, close_db, engine
-from routes.users import user_router
-from routes.rooms import room_router
+from routers.users import user_router
+from routers.rooms import room_router
 
 
 @asynccontextmanager
