@@ -1,11 +1,13 @@
 import logging
 from redis import asyncio as aioredis
+from config import settings
 
 logger = logging.getLogger(__name__)
 
 
 async def get_redis_pool():
-    return await aioredis.from_url("redis://127.0.0.1:6379/0")
+    redis_url = f"redis://{settings.REDIS_HOST}:6379/0"
+    return await aioredis.from_url(redis_url)
 
 
 class RedisSessionManager:
