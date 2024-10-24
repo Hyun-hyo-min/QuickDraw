@@ -1,21 +1,68 @@
 services:
-
   fastapi:
     image: quickdraw/backend:latest
-    ports:
-      - "8000:8000"
     depends_on:
       - redis
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+    networks:
+      - webnet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`www.quick-draw-pjt.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=myresolver"
+      - "traefik.http.routers.api.service=api"
+
+      - "traefik.http.routers.api-http.rule=Host(`www.quick-draw-pjt.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api-http.entrypoints=web"
+      - "traefik.http.routers.api-http.middlewares=https-redirect"
+
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
 
   redis:
     image: "redis:6.2"
-    ports:
-      - "6379:6379"
+    networks:
+      - webnet
 
   react:
     image: quickdraw/frontend:latest
+    networks:
+      - webnet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.react.rule=Host(`www.quick-draw-pjt.com`)"
+      - "traefik.http.routers.react.entrypoints=websecure"
+      - "traefik.http.routers.react.tls.certresolver=myresolver"
+      - "traefik.http.routers.react.service=react"
+
+      - "traefik.http.routers.react-http.rule=Host(`www.quick-draw-pjt.com`)"
+      - "traefik.http.routers.react-http.entrypoints=web"
+      - "traefik.http.routers.react-http.middlewares=https-redirect"
+
+      - "traefik.http.services.react.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+
+  traefik:
+    image: traefik:v2.9
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=quickdrawpjt@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - webnet
+
+networks:
+  webnet:
