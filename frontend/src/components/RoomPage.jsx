@@ -32,7 +32,7 @@ function RoomPage() {
 
                 // 세션 생성하기
                 const sessionResponse = await axiosInstance.post(`/rooms/session/${roomId}`);
-                setSessionUrl(`ws://127.0.0.1:8000${sessionResponse.data.url}`)
+                setSessionUrl(`wss://${process.env.REACT_APP_BASE_URL}${sessionResponse.data.url}`)
             } catch (error) {
                 console.error('Error initializing room:', error.response?.data?.detail);
             }
