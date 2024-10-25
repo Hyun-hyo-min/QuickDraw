@@ -13,7 +13,7 @@ from service.redis import get_redis_pool
 router = APIRouter()
 
 
-@router.post("/")
+@router.post("")
 async def create_room(
     body: RoomCreateRequest,
     email: str = Depends(get_current_user),
@@ -106,7 +106,7 @@ async def room_info(room_id: int, session: AsyncSession = Depends(get_db_session
     }
 
 
-@router.get("/")
+@router.get("")
 async def get_rooms(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),

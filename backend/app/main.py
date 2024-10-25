@@ -5,6 +5,7 @@ from database.connection import init_db, close_db, engine
 from routes.routers import router
 from config import settings
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db(engine)
@@ -12,6 +13,8 @@ async def lifespan(app: FastAPI):
     await close_db(engine)
 
 app = FastAPI(lifespan=lifespan)
+
+app.router.redirect_slashes = False
 
 origins = [
     'http://127.0.0.1',
