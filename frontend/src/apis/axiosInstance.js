@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { Logout } from '../utils/Authenticate';
+import { NODE_ENV, BASE_URL } from '../config/config';
+
 
 const axiosInstance = axios.create({
-    baseURL: `/api/v1`,
+    baseURL: NODE_ENV === 'production' ? `https://${BASE_URL}` : `http://${BASE_URL}/api/v1`,
 });
 
 axiosInstance.interceptors.request.use(

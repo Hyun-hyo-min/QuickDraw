@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../apis/axiosInstance';
+import { BASE_URL, wsProtocol } from '../config/config';
 
 function RoomPage() {
     const { roomId } = useParams();
@@ -32,7 +33,7 @@ function RoomPage() {
 
                 // 세션 생성하기
                 const sessionResponse = await axiosInstance.post(`/rooms/session/${roomId}`);
-                setSessionUrl(`ws://${process.env.REACT_APP_BASE_URL}${sessionResponse.data.url}`)
+                setSessionUrl(`${wsProtocol}://${BASE_URL}${sessionResponse.data.url}`);
             } catch (error) {
                 console.error('Error initializing room:', error.response?.data?.detail);
             }
