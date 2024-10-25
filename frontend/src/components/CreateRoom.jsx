@@ -10,11 +10,11 @@ function CreateRoom() {
         e.preventDefault();
 
         try {
-            const response = await axiosInstance.post('/rooms', {
+            const response = await axiosInstance.post('/rooms/', {
                 room_name: roomName
             });
             const roomId = response.data.room_id;
-            navigate(`/rooms/${roomId}`)
+            navigate(`/rooms/${roomId}/`)
         } catch (error) {
             console.error('Error creating room:', error.response.data.detail);
         }

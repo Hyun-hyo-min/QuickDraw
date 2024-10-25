@@ -14,9 +14,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 origins = [
-    'http://127.0.0.1:80',
-    'http://127.0.0.1:3000',
-    'http://localhost:80',
+    'http://127.0.0.1',
     'http://localhost:3000',
     f'https://{settings.BASE_URL}',
     f'https://{settings.BASE_URL.replace("www.", "")}',

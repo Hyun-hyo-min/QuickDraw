@@ -32,7 +32,7 @@ function RoomPage() {
 
                 // 세션 생성하기
                 const sessionResponse = await axiosInstance.post(`/rooms/session/${roomId}`);
-                setSessionUrl(`wss://${process.env.REACT_APP_BASE_URL}${sessionResponse.data.url}`)
+                setSessionUrl(`ws://${process.env.REACT_APP_BASE_URL}${sessionResponse.data.url}`)
             } catch (error) {
                 console.error('Error initializing room:', error.response?.data?.detail);
             }
@@ -49,8 +49,6 @@ function RoomPage() {
             } else {
                 console.error('Failed to get canvas context');
             }
-        } else {
-            console.error('Canvas element not found');
         }
     }, [roomDetails]);
 
@@ -59,12 +57,9 @@ function RoomPage() {
         if (!ctx || !roomDetails) return;
 
         const ws = new WebSocket(sessionUrl);
-        console.log("sessionUrl: ", sessionUrl);
         socketRef.current = ws;
 
-        ws.onopen = () => {
-            console.log('WebSocket connection opened');
-        };
+        ws.onopen = () => {};
 
         // WebSocket 메시지 수신 처리
         ws.onmessage = (event) => {

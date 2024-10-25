@@ -1,8 +1,8 @@
 import axios from 'axios';
+import { Logout } from '../utils/Authenticate';
 
 const axiosInstance = axios.create({
     baseURL: `/api/v1`,
-    withCredentials: true,
 });
 
 axiosInstance.interceptors.request.use(
@@ -10,9 +10,8 @@ axiosInstance.interceptors.request.use(
         const token = localStorage.getItem('access_token');
         if (token) {
             try {
-                const parsedToken = JSON.parse(token);
-                const accessToken = parsedToken?.token?.access_token;
-                
+                const accessToken = JSON.parse(token);
+
                 if (accessToken) {
                     config.headers.Authorization = `Bearer ${accessToken}`;
                 }
@@ -27,5 +26,19 @@ axiosInstance.interceptors.request.use(
         return Promise.reject(error);
     }
 );
+
+axiosInstance.interceptors.response.use(
+    (response) => {
+        return response;
+    },
+    async (error) => {
+        if (error.response && error.response.status === 401) {
+            Logout();
+            window.location.href = "/";
+        }
+        return Promise.reject(error);
+    }
+);
+
 
 export default axiosInstance;

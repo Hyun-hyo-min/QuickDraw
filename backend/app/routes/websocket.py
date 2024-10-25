@@ -14,6 +14,8 @@ async def room_websocket_endpoint(
     email: str,
     redis: Annotated[aioredis.Redis, Depends(get_redis_pool)]
 ):
+    print(email)
+
     session_manager = RedisSessionManager(room_id, redis)
     session = WebSocketSession(room_id, email, websocket, redis)
 
@@ -22,7 +24,6 @@ async def room_websocket_endpoint(
             await session.close_websocket(code=status.WS_1008_POLICY_VIOLATION)
             raise HTTPException(status_code=404, detail="Session not found")
 
-        # 현재 접속자 수 확인
         client_count = await session_manager.get_client_count()
         if client_count >= 8:
             await session.close_websocket(code=status.WS_1008_POLICY_VIOLATION)

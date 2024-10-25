@@ -4,11 +4,7 @@ export const getToken = () => {
 	if (!myToken)
 		return null;
 
-	if (myToken.expire <= Date.now()){
-		localStorage.removeItem('access_token')
-		return null;
-	}
-	return myToken.token
+	return myToken
 }
 
 export const Logout = () => {

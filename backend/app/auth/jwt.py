@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, status
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
@@ -11,10 +11,12 @@ SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 
 
-def create_access_token(email: EmailStr, exp: int):
+def create_access_token(email: EmailStr):
+    exp = (datetime.now() + timedelta(minutes=60)).timestamp()
+
     payload = {
         "email": email,
-        "expires": exp
+        "exp": exp
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
@@ -23,14 +25,14 @@ def create_access_token(email: EmailStr, exp: int):
 def verify_access_token(token: str):
     try:
         data = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
+        exp = data.get("exp")
 
-        expires = data.get("expires")
-        if expires is None:
+        if exp is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No access token supplied"
             )
-        if datetime.now() > datetime.fromtimestamp(expires):
+        if datetime.now() > exp:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Token expired"
