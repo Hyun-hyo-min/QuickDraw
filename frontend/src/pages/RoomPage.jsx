@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../apis/axiosInstance';
 import { BASE_URL, wsProtocol } from '../config/config';
-import '../styles/RoomPage.css';
+import { getUserEmail } from '../utils/Authenticate';
+import { Canvas, RoomInfo, PlayerList, Chat } from '../components';
 
 function RoomPage() {
     const { roomId } = useParams();
@@ -16,16 +17,7 @@ function RoomPage() {
     const prevCoordsRef = useRef({ prevX: 0, prevY: 0 });
     const navigate = useNavigate();
 
-    const getUserEmailFromToken = () => {
-        const token = localStorage.getItem('access_token');
-        if (!token) return null;
-
-        const accessToken = token;
-        const payload = JSON.parse(atob(accessToken.split('.')[1]));
-        return payload.email;
-    };
-
-    const currentUser = getUserEmailFromToken();
+    const currentUser = getUserEmail();
 
     useEffect(() => {
         const initializeRoom = async () => {
@@ -155,62 +147,26 @@ function RoomPage() {
 
     return (
         <div>
-            <h2>Room: {roomDetails.room_name}</h2>
-
-            {currentUser === roomDetails.host && (
-                <button onClick={handleDeleteRoom}>Delete Room</button>
-            )}
-            <button onClick={handleQuitRoom}>Quit Room</button>
-
+            <RoomInfo
+                roomDetails={roomDetails}
+                currentUser={currentUser}
+                onDeleteRoom={handleDeleteRoom}
+                onQuitRoom={handleQuitRoom}
+            />
             <div className="room-container">
                 <div className="main-container">
-                    <div className="canvas-container">
-                        <div className="drawing-box">
-                            <canvas
-                                ref={canvasRef}
-                                width={1400}
-                                height={600}
-                                onMouseDown={handleMouseDown}
-                                onMouseMove={handleMouseMove}
-                                style={{ border: '1px solid black' }}
-                            />
-                        </div>
-
-                        <div className="players-container">
-                            <div className="players-left">
-                                {roomDetails.players.slice(0, 4).map((player, index) => (
-                                    <div key={index} className="player-name">
-                                        {player}
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="players-right">
-                                {roomDetails.players.slice(4, 8).map((player, index) => (
-                                    <div key={index} className="player-name">
-                                        {player}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="chat-container">
-                        <div className="chat-messages">
-                            {chatMessages.map((msg, index) => (
-                                <div key={index} className="chat-message">
-                                    {msg}
-                                </div>
-                            ))}
-                        </div>
-                        <input
-                            type="text"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="Type a message..."
-                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                        />
-                        <button onClick={handleSendMessage}>Send</button>
-                    </div>
+                    <Canvas
+                        canvasRef={canvasRef}
+                        handleMouseDown={handleMouseDown}
+                        handleMouseMove={handleMouseMove}
+                    />
+                    <PlayerList players={roomDetails.players} />
+                    <Chat
+                        chatMessages={chatMessages}
+                        newMessage={newMessage}
+                        setNewMessage={setNewMessage}
+                        onSendMessage={handleSendMessage}
+                    />
                 </div>
             </div>
         </div>
