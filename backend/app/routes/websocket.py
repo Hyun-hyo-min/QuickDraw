@@ -14,7 +14,6 @@ async def room_websocket_endpoint(
     email: str,
     redis: Annotated[aioredis.Redis, Depends(get_redis_pool)]
 ):
-    print(email)
 
     session_manager = RedisSessionManager(room_id, redis)
     session = WebSocketSession(room_id, email, websocket, redis)

@@ -58,7 +58,7 @@ class WebSocketSession:
     async def send_messages(self):
         try:
             async for message in self.pubsub.listen():
-                if message["type"] == "message":
+                if message["type"] == "message"  and not self.is_closed:
                     data = message["data"]
                     await self.websocket.send_text(data.decode("utf-8"))
         except Exception as e:
