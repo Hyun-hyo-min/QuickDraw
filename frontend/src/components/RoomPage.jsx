@@ -2,11 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../apis/axiosInstance';
 import { BASE_URL, wsProtocol } from '../config/config';
+import '../styles/RoomPage.css';
 
 function RoomPage() {
     const { roomId } = useParams();
     const [roomDetails, setRoomDetails] = useState(null);
     const [sessionUrl, setSessionUrl] = useState("");
+    const [chatMessages, setChatMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState("");
     const canvasRef = useRef(null);
     const [ctx, setCtx] = useState(null);
     const socketRef = useRef(null);
@@ -27,11 +30,9 @@ function RoomPage() {
     useEffect(() => {
         const initializeRoom = async () => {
             try {
-                // 방 정보 가져오기
                 const roomResponse = await axiosInstance.get(`/rooms/${roomId}`);
                 setRoomDetails(roomResponse.data);
 
-                // 세션 생성하기
                 const sessionResponse = await axiosInstance.post(`/rooms/session/${roomId}`);
                 setSessionUrl(`${wsProtocol}://${BASE_URL}${sessionResponse.data.url}`);
             } catch (error) {
@@ -54,15 +55,13 @@ function RoomPage() {
     }, [roomDetails]);
 
     useEffect(() => {
-        // WebSocket 연결 설정
         if (!ctx || !roomDetails) return;
 
         const ws = new WebSocket(sessionUrl);
         socketRef.current = ws;
 
-        ws.onopen = () => {};
+        ws.onopen = () => { };
 
-        // WebSocket 메시지 수신 처리
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.type === 'draw') {
@@ -71,17 +70,23 @@ function RoomPage() {
                 ctx.moveTo(prevX, prevY);
                 ctx.lineTo(x, y);
                 ctx.stroke();
+            } else if (data.type === 'chat') {
+                const message = `${data.email}: ${data.message}`;
+                setChatMessages((prevMessages) => [...prevMessages, message]);
+
+                setTimeout(() => {
+                    setChatMessages((prevMessages) => prevMessages.slice(1));
+                }, 10000);
             }
         };
 
-        // 컴포넌트 언마운트 시 WebSocket 연결 해제
         return () => {
             ws.close();
         };
     }, [roomId, roomDetails, sessionUrl]);
 
     const handleMouseMove = (event) => {
-        if (event.buttons !== 1 || !ctx) return; // 마우스 왼쪽 버튼이 눌려있지 않으면 무시
+        if (event.buttons !== 1 || !ctx) return;
 
         const rect = canvasRef.current.getBoundingClientRect();
         const x = event.clientX - rect.left;
@@ -94,13 +99,11 @@ function RoomPage() {
         ctx.lineTo(x, y);
         ctx.stroke();
 
-        // WebSocket을 통해 그림 데이터 전송
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
             const drawingData = { type: 'draw', x, y, prevX, prevY };
             socketRef.current.send(JSON.stringify(drawingData));
         }
 
-        // 이전 좌표 저장
         prevCoordsRef.current.prevX = x;
         prevCoordsRef.current.prevY = y;
     };
@@ -112,7 +115,6 @@ function RoomPage() {
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
 
-        // 이전 좌표 초기화
         prevCoordsRef.current.prevX = x;
         prevCoordsRef.current.prevY = y;
     };
@@ -120,7 +122,7 @@ function RoomPage() {
     const handleDeleteRoom = async () => {
         try {
             await axiosInstance.delete(`rooms/${roomId}`);
-            navigate('/');  // 방을 삭제한 후 메인 페이지로 이동
+            navigate('/');
         } catch (error) {
             console.error('Error deleting room:', error.response?.data?.detail);
         }
@@ -129,9 +131,21 @@ function RoomPage() {
     const handleQuitRoom = async () => {
         try {
             await axiosInstance.delete(`rooms/${roomId}/players`);
-            navigate('/');  // 방을 나간 후 메인 페이지로 이동
+            navigate('/');
         } catch (error) {
             console.error('Error quitting room:', error.response?.data?.detail);
+        }
+    };
+
+    const handleSendMessage = () => {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && newMessage.trim()) {
+            const chatData = {
+                type: 'chat',
+                email: currentUser,
+                message: newMessage,
+            };
+            socketRef.current.send(JSON.stringify(chatData));
+            setNewMessage("");
         }
     };
 
@@ -143,39 +157,59 @@ function RoomPage() {
         <div>
             <h2>Room: {roomDetails.room_name}</h2>
 
-            {/* 현재 유저가 호스트일 경우에만 방 삭제 버튼을 표시 */}
             {currentUser === roomDetails.host && (
                 <button onClick={handleDeleteRoom}>Delete Room</button>
             )}
-
             <button onClick={handleQuitRoom}>Quit Room</button>
 
-            <div className="canvas-container">
-                <div className="drawing-box">
-                    <canvas
-                        ref={canvasRef}
-                        width={800}
-                        height={600}
-                        onMouseDown={handleMouseDown}
-                        onMouseMove={handleMouseMove}
-                        style={{ border: '1px solid black' }}
-                    />
-                </div>
+            <div className="room-container">
+                <div className="main-container">
+                    <div className="canvas-container">
+                        <div className="drawing-box">
+                            <canvas
+                                ref={canvasRef}
+                                width={1400}
+                                height={600}
+                                onMouseDown={handleMouseDown}
+                                onMouseMove={handleMouseMove}
+                                style={{ border: '1px solid black' }}
+                            />
+                        </div>
 
-                <div className="players-container">
-                    <div className="players-left">
-                        {roomDetails.players.slice(0, 4).map((player, index) => (
-                            <div key={index} className="player-name">
-                                {player}
+                        <div className="players-container">
+                            <div className="players-left">
+                                {roomDetails.players.slice(0, 4).map((player, index) => (
+                                    <div key={index} className="player-name">
+                                        {player}
+                                    </div>
+                                ))}
                             </div>
-                        ))}
+                            <div className="players-right">
+                                {roomDetails.players.slice(4, 8).map((player, index) => (
+                                    <div key={index} className="player-name">
+                                        {player}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                    <div className="players-right">
-                        {roomDetails.players.slice(4, 8).map((player, index) => (
-                            <div key={index} className="player-name">
-                                {player}
-                            </div>
-                        ))}
+
+                    <div className="chat-container">
+                        <div className="chat-messages">
+                            {chatMessages.map((msg, index) => (
+                                <div key={index} className="chat-message">
+                                    {msg}
+                                </div>
+                            ))}
+                        </div>
+                        <input
+                            type="text"
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder="Type a message..."
+                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                        />
+                        <button onClick={handleSendMessage}>Send</button>
                     </div>
                 </div>
             </div>

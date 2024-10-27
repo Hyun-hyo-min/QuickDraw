@@ -1,0 +1,44 @@
+.room-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+}
+
+.main-container {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    gap: 0; /* 요소 간의 여백 제거 */
+}
+
+.canvas-container {
+    flex: 3;
+    margin: 0;
+    padding: 0;
+}
+
+.chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 300px;
+    margin: 0;
+    padding: 0;
+}
+
+.drawing-box canvas {
+    border: 1px solid black; /* 캔버스에만 border 적용 */
+}
+
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.chat-message {
+    margin-bottom: 5px;
+}
