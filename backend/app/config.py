@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     DATABASE_URL: str
     REDIS_HOST: str
+    BASE_URL: str
 
     class Config:
         env_file = ".env"

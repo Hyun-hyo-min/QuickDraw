@@ -1,6 +1,4 @@
-import json
 from typing import Annotated
-from datetime import datetime, timedelta
 from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -15,7 +13,7 @@ from service.redis import get_redis_pool
 router = APIRouter()
 
 
-@router.post("/")
+@router.post("")
 async def create_room(
     body: RoomCreateRequest,
     email: str = Depends(get_current_user),
@@ -51,12 +49,15 @@ async def join_room(room_id: int, email: str = Depends(get_current_user), sessio
 
     if len(room.players) >= room.max_players:
         raise HTTPException(status_code=400, detail="Room is full.")
+    
+    if any(player.email == email for player in room.players):
+        return {"message": f"{email} joined the room"}
 
     result = await session.execute(select(Player).where(Player.email == email))
     existing_player = result.scalars().first()
     if existing_player:
         raise HTTPException(
-            status_code=400, detail="User already in the room.")
+            status_code=400, detail="User already in another room.")
 
     new_player = Player(email=email, room_id=room_id)
     session.add(new_player)
@@ -105,7 +106,7 @@ async def room_info(room_id: int, session: AsyncSession = Depends(get_db_session
     }
 
 
-@router.get("/")
+@router.get("")
 async def get_rooms(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -127,7 +128,7 @@ async def get_rooms(
     rooms = result.scalars().all()
 
     if not rooms:
-        raise HTTPException(status_code=404, detail="No rooms found.")
+        return {"rooms": [], "total_pages": 1}
 
     rooms = [
         RoomResponse(

@@ -1,6 +1,6 @@
 name: build
 on:
-  push:
+  pull_request:
     branches:
       - build
 
@@ -18,9 +18,12 @@ jobs:
           echo GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} >> backend/.env
           echo GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} >> backend/.env
           echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> backend/.env
+          echo BASE_URL=${{ secrets.BASE_URL }} >> backend/.env
 
           echo REACT_APP_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} > frontend/.env
           echo REACT_APP_GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} >> frontend/.env
+          echo REACT_APP_BASE_URL=${{ secrets.BASE_URL }} >> frontend/.env
+          echo REACT_APP_NODE_ENV=production >> frontend/.env
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2

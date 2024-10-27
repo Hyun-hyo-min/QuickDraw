@@ -5,7 +5,6 @@ from models.enums import RoomStatus
 class UserBase(SQLModel):
     name: str
     email: EmailStr
-    exp: int
 
 class RoomBase(SQLModel):
     id: int
