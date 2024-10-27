@@ -119,7 +119,7 @@ function RoomPage() {
 
     const handleDeleteRoom = async () => {
         try {
-            await axiosInstance.delete(`/rooms/${roomId}`);
+            await axiosInstance.delete(`rooms/${roomId}`);
             navigate('/');  // 방을 삭제한 후 메인 페이지로 이동
         } catch (error) {
             console.error('Error deleting room:', error.response?.data?.detail);
@@ -128,7 +128,7 @@ function RoomPage() {
 
     const handleQuitRoom = async () => {
         try {
-            await axiosInstance.delete(`/rooms/${roomId}/players`);
+            await axiosInstance.delete(`rooms/${roomId}/players`);
             navigate('/');  // 방을 나간 후 메인 페이지로 이동
         } catch (error) {
             console.error('Error quitting room:', error.response?.data?.detail);

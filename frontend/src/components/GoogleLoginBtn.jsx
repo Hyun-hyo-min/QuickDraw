@@ -12,7 +12,7 @@ export const GoogleLoginBtn = () => {
             name: decode_token.family_name + decode_token.given_name,
         }
 
-        axiosInstance.post("/users/login/", data,
+        axiosInstance.post("users/login", data,
             {
                 headers: {
                     'Content-Type': 'application/json'

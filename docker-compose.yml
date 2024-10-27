@@ -23,7 +23,7 @@ services:
     image: quickdraw/backend:latest
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.fastapi.rule=Host(`quick-draw-pjt.com`) && PathPrefix(`/api/v1`, `/ws/`)"
+      - "traefik.http.routers.fastapi.rule=Host(`quick-draw-pjt.com`) && (PathPrefix(`/api/v1`) || PathPrefix(`/ws/`))"
       - "traefik.http.routers.fastapi.entrypoints=websecure"
       - "traefik.http.routers.fastapi.tls.certresolver=myresolver"
       - "traefik.http.services.fastapi.loadbalancer.server.port=8000"
