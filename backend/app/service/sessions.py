@@ -4,6 +4,7 @@ import logging
 from redis import asyncio as aioredis
 from fastapi import WebSocket, HTTPException, status
 from fastapi.websockets import WebSocketDisconnect
+from service.redis import RedisSessionManager
 
 logger = logging.getLogger(__name__)
 
@@ -13,41 +14,33 @@ class WebSocketSession:
         self.id = str(id)
         self.email = email
         self.websocket = websocket
-        self.redis = redis
-        self.pubsub = self.redis.pubsub()
+        self.session_manager = RedisSessionManager(id, redis)
         self.is_closed = False
 
     async def validate_session(self):
-        session_data = await self.redis.get(self.id)
-
-        if not session_data:
-            await self.close_websocket(code=status.WS_1008_POLICY_VIOLATION)
-            raise HTTPException(status_code=404, detail="Session not found.")
-
-        session_data = json.loads(session_data)
-
-        if len(session_data.get("clients", [])) >= 8:
-            await self.close_websocket(code=status.WS_1008_POLICY_VIOLATION)
+        if not await self.session_manager.session_exists():
             raise HTTPException(
-                status_code=403, detail="Maximum connections per session exceeded.")
+                status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
 
-        return session_data
+        client_count = await self.session_manager.get_client_count()
+        if client_count >= 8:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="Maximum connections per session exceeded.")
 
     async def accept_connection(self):
         await self.websocket.accept()
+        await self.session_manager.add_client(self.email)
 
-    async def subscribe_channel(self):
-        await self.pubsub.subscribe(self.id)
+    async def close_websocket(self, code=status.WS_1000_NORMAL_CLOSURE):
+        if not self.is_closed:
+            await self.websocket.close(code=code)
+            self.is_closed = True
 
-    async def unsubscribe_channel(self):
-        await self.pubsub.unsubscribe(self.id)
-        await self.pubsub.close()
-
-    async def receive_messages(self):
+    async def handle_receive_messages(self):
         try:
             while True:
                 received_data = await self.websocket.receive_text()
-                await self.redis.publish(self.id, received_data)
+                await self.session_manager.publish(received_data)
         except WebSocketDisconnect:
             logger.info(f"WebSocket disconnected: {self.websocket.client}")
             await self.handle_disconnection()
@@ -55,27 +48,30 @@ class WebSocketSession:
             logger.error(f"Error while receiving message: {e}")
             await self.close_websocket(code=status.WS_1011_INTERNAL_ERROR)
 
-    async def send_messages(self):
+    async def handle_send_messages(self):
         try:
-            async for message in self.pubsub.listen():
-                if message["type"] == "message"  and not self.is_closed:
+            async for message in self.session_manager.listen():
+                if message["type"] == "message" and not self.is_closed:
                     data = message["data"]
                     await self.websocket.send_text(data.decode("utf-8"))
+        except WebSocketDisconnect:
+            logger.info(f"WebSocket disconnected: {self.websocket.client}")
+            await self.handle_disconnection()
         except Exception as e:
             logger.error(f"Error while sending message: {e}")
             await self.close_websocket(code=status.WS_1011_INTERNAL_ERROR)
 
-    async def run(self):
-        receive_task = asyncio.create_task(self.receive_messages())
-        send_task = asyncio.create_task(self.send_messages())
-        await asyncio.gather(receive_task, send_task)
-
-    async def close_websocket(self, code):
-        if not self.is_closed:
-            await self.websocket.close(code=code)
-            self.is_closed = True
-
     async def handle_disconnection(self):
-        session_key = f"session:{self.id}:clients"
-        await self.redis.srem(session_key, self.email)
-        logger.info(f"Removed client {self.email} from set {session_key}")
+        await self.session_manager.remove_client(self.email)
+        client_count = await self.session_manager.get_client_count()
+        if client_count == 0:
+            await self.session_manager.delete_session()
+        self.is_closed = True
+        logger.info(f"Client {self.email} disconnected from session {self.id}")
+
+    async def run(self):
+        await self.validate_session()
+        await self.accept_connection()
+        receive_task = asyncio.create_task(self.handle_receive_messages())
+        send_task = asyncio.create_task(self.handle_send_messages())
+        await asyncio.gather(receive_task, send_task)
