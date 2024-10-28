@@ -20,6 +20,8 @@ session_factory = sessionmaker(
 
 async def init_db(engine: AsyncEngine):
     async with engine.begin() as conn:
+        # TODO: drop_table
+        await conn.run_sync(SQLModel.metadata.drop_all)
         await conn.run_sync(SQLModel.metadata.create_all)
 
 
