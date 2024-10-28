@@ -5,6 +5,7 @@ from models.enums import RoomStatus
 class UserBase(SQLModel):
     name: str
     email: EmailStr
+    password: str
 
 class RoomBase(SQLModel):
     id: int
