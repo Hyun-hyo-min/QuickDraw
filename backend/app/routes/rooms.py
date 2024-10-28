@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from database.connection import get_db_session
 from auth.jwt import get_current_user
-from models.models import Room, Player, Draw
+from models.models import Room, Player, Drawing
 from dto.request_dto import RoomCreateRequest
 from dto.response_dto import RoomResponse
 
@@ -164,6 +164,6 @@ async def delete_room(room_id: int, email: str = Depends(get_current_user), sess
 
 @router.get("/{room_id}/drawings")
 async def get_drawings(room_id: int, db: AsyncSession = Depends(get_db_session)):
-    result = await db.execute(select(Draw).where(Draw.room_id == room_id))
+    result = await db.execute(select(Drawing).where(Drawing.room_id == room_id))
     drawings = result.scalars().all()
     return [{"x": d.x, "y": d.y, "prevX": d.prev_x, "prevY": d.prev_y} for d in drawings]

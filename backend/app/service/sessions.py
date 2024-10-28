@@ -6,7 +6,7 @@ from fastapi import WebSocket, HTTPException, status
 from fastapi.websockets import WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from service.redis import RedisSessionManager
-from models.models import Draw
+from models.models import Drawing
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ class WebSocketSession:
                 ]
 
                 await self.db_session.execute(
-                    Draw.__table__.insert(),
+                    Drawing.__table__.insert(),
                     insert_values
                 )
                 await self.db_session.commit()
