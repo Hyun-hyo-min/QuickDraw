@@ -5,7 +5,8 @@ from sqlalchemy.orm import selectinload
 from database.connection import get_db_session
 from auth.jwt import get_current_user
 from models.models import Room, Player, Draw
-from schemas.schemas import RoomCreateRequest, RoomResponse
+from dto.request_dto import RoomCreateRequest
+from dto.response_dto import RoomResponse
 
 router = APIRouter()
 
@@ -46,7 +47,7 @@ async def join_room(room_id: int, email: str = Depends(get_current_user), sessio
 
     if len(room.players) >= room.max_players:
         raise HTTPException(status_code=400, detail="Room is full.")
-    
+
     if any(player.email == email for player in room.players):
         return {"message": f"{email} joined the room"}
 
@@ -159,6 +160,7 @@ async def delete_room(room_id: int, email: str = Depends(get_current_user), sess
     await session.commit()
 
     return {"message": f"room {room_id} deleted"}
+
 
 @router.get("/{room_id}/drawings")
 async def get_drawings(room_id: int, db: AsyncSession = Depends(get_db_session)):

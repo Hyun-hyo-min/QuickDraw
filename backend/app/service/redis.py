@@ -1,4 +1,5 @@
 import logging
+import json
 from redis import asyncio as aioredis
 from config import settings
 from typing import List
@@ -15,31 +16,39 @@ class RedisSessionManager:
     def __init__(self, session_id, redis: aioredis.Redis):
         self.redis = redis
         self.pubsub = self.redis.pubsub()
-        self.session_key = f"{session_id}:clients"
+        self.client_key = f"{session_id}:clients"
+        self.draw_key = f"{session_id}:draws"
 
     async def session_exists(self) -> bool:
-        return await self.redis.exists(self.session_key) > 0
+        return await self.redis.exists(self.client_key) > 0
 
     async def listen(self):
-        await self.pubsub.subscribe(self.session_key)
+        await self.pubsub.subscribe(self.client_key)
         async for message in self.pubsub.listen():
             yield message
 
-    async def publish(self, data: str):
-        await self.redis.publish(self.session_key, data)
+    async def publish_client(self, data: str):
+        await self.redis.publish(self.client_key, data)
 
     async def add_client(self, client: str):
-        await self.redis.sadd(self.session_key, client)
-        await self.redis.expire(self.session_key, 300)
-        logger.info(f"Added client {client} to session {self.session_key}")
+        await self.redis.sadd(self.client_key, client)
+        await self.redis.expire(self.client_key, 300)
 
     async def remove_client(self, client: str):
-        await self.redis.srem(self.session_key, client)
-        logger.info(f"Removed client {client} from session {self.session_key}")
+        await self.redis.srem(self.client_key, client)
 
     async def get_client_count(self) -> int:
-        return await self.redis.scard(self.session_key)
-    
-    async def delete_session(self):
-        await self.redis.delete(self.session_key)
-        logger.info(f"Deleted session {self.session_key}")
+        return await self.redis.scard(self.client_key)
+
+    async def delete_client_session(self):
+        await self.redis.delete(self.client_key)
+
+    async def save_draw_data(self, draw_data: dict):
+        await self.redis.rpush(self.draw_key, json.dumps(draw_data))
+
+    async def get_all_draw_data(self):
+        drawings = await self.redis.lrange(self.draw_key, 0, -1)
+        return [json.loads(draw) for draw in drawings]
+
+    async def clear_draw_data(self):
+        await self.redis.delete(self.draw_key)
