@@ -70,8 +70,8 @@ class WebSocketSession:
         logger.info(f"Client {self.email} disconnected from session {self.id}")
 
     async def run(self):
-        await self.validate_session()
         await self.accept_connection()
+        await self.validate_session()
         receive_task = asyncio.create_task(self.handle_receive_messages())
         send_task = asyncio.create_task(self.handle_send_messages())
         await asyncio.gather(receive_task, send_task)

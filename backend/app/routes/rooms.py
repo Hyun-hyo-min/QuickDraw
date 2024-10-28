@@ -162,18 +162,3 @@ async def delete_room(room_id: int, email: str = Depends(get_current_user), sess
     await session.commit()
 
     return {"message": f"room {room_id} deleted"}
-
-
-@router.post("/session/{room_id}")
-async def create_room_session(
-    room_id: int,
-    redis: Annotated[aioredis.Redis, Depends(get_redis_pool)],
-    email: str = Depends(get_current_user)
-):
-    session_id = str(room_id)
-    session_key = f"session:{session_id}:clients"
-
-    await redis.sadd(session_key, email)
-    await redis.expire(session_key, 300)
-
-    return {"url": f"/ws/rooms/{room_id}/{email}"}
