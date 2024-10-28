@@ -6,7 +6,8 @@ from models.enums import RoomStatus
 
 
 class User(UserBase, table=True):
-    email: EmailStr = Field(primary_key=True)
+    email: EmailStr = Field(primary_key=True, index=True)
+    password: str = Field(nullable=True)
 
 
 class Room(RoomBase, table=True):
