@@ -8,7 +8,6 @@ import { Canvas, RoomInfo, PlayerList, Chat } from '../components';
 function RoomPage() {
     const { roomId } = useParams();
     const [roomDetails, setRoomDetails] = useState(null);
-    const [sessionUrl, setSessionUrl] = useState("");
     const [chatMessages, setChatMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
     const canvasRef = useRef(null);
@@ -25,8 +24,18 @@ function RoomPage() {
                 const roomResponse = await axiosInstance.get(`/rooms/${roomId}`);
                 setRoomDetails(roomResponse.data);
 
-                const sessionResponse = await axiosInstance.post(`/rooms/session/${roomId}`);
-                setSessionUrl(`${wsProtocol}://${BASE_URL}${sessionResponse.data.url}`);
+                const drawingsResponse = await axiosInstance.get(`/rooms/${roomId}/drawings`);
+                const context = canvasRef.current.getContext("2d");
+
+                if (context) {
+                    setCtx(context);
+                    drawingsResponse.data.forEach(({ x, y, prevX, prevY }) => {
+                        context.beginPath();
+                        context.moveTo(prevX, prevY);
+                        context.lineTo(x, y);
+                        context.stroke();
+                    });
+                }
             } catch (error) {
                 console.error('Error initializing room:', error.response?.data?.detail);
             }
@@ -49,7 +58,7 @@ function RoomPage() {
     useEffect(() => {
         if (!ctx || !roomDetails) return;
 
-        const ws = new WebSocket(sessionUrl);
+        const ws = new WebSocket(`${wsProtocol}://${BASE_URL}/ws/rooms/${roomId}/${currentUser}`);
         socketRef.current = ws;
 
         ws.onopen = () => { };
@@ -72,10 +81,12 @@ function RoomPage() {
             }
         };
 
+        ws.onclose = () => { };
+
         return () => {
             ws.close();
         };
-    }, [roomId, roomDetails, sessionUrl]);
+    }, [roomId, roomDetails, currentUser, ctx]);
 
     const handleMouseMove = (event) => {
         if (event.buttons !== 1 || !ctx) return;

@@ -2,9 +2,12 @@ from sqlmodel import SQLModel
 from pydantic import EmailStr
 from models.enums import RoomStatus
 
+
 class UserBase(SQLModel):
     name: str
     email: EmailStr
+    password: str
+
 
 class RoomBase(SQLModel):
     id: int
@@ -19,3 +22,11 @@ class PlayerBase(SQLModel):
     email: EmailStr
     room_id: int
 
+
+class DrawingBase(SQLModel):
+    id: int
+    room_id: int
+    x: float
+    y: float
+    prev_x: float
+    prev_y: float

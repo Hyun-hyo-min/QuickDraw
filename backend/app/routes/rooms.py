@@ -1,14 +1,12 @@
-from typing import Annotated
 from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from redis import asyncio as aioredis
 from database.connection import get_db_session
 from auth.jwt import get_current_user
-from models.models import Room, Player
-from schemas.schemas import RoomCreateRequest, RoomResponse
-from service.redis import get_redis_pool
+from models.models import Room, Player, Drawing
+from dto.request_dto import RoomCreateRequest
+from dto.response_dto import RoomResponse
 
 router = APIRouter()
 
@@ -49,7 +47,7 @@ async def join_room(room_id: int, email: str = Depends(get_current_user), sessio
 
     if len(room.players) >= room.max_players:
         raise HTTPException(status_code=400, detail="Room is full.")
-    
+
     if any(player.email == email for player in room.players):
         return {"message": f"{email} joined the room"}
 
@@ -164,16 +162,8 @@ async def delete_room(room_id: int, email: str = Depends(get_current_user), sess
     return {"message": f"room {room_id} deleted"}
 
 
-@router.post("/session/{room_id}")
-async def create_room_session(
-    room_id: int,
-    redis: Annotated[aioredis.Redis, Depends(get_redis_pool)],
-    email: str = Depends(get_current_user)
-):
-    session_id = str(room_id)
-    session_key = f"session:{session_id}:clients"
-
-    await redis.sadd(session_key, email)
-    await redis.expire(session_key, 300)
-
-    return {"url": f"/ws/rooms/{room_id}/{email}"}
+@router.get("/{room_id}/drawings")
+async def get_drawings(room_id: int, db: AsyncSession = Depends(get_db_session)):
+    result = await db.execute(select(Drawing).where(Drawing.room_id == room_id))
+    drawings = result.scalars().all()
+    return [{"x": d.x, "y": d.y, "prevX": d.prev_x, "prevY": d.prev_y} for d in drawings]
