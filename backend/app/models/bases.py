@@ -23,7 +23,7 @@ class PlayerBase(SQLModel):
     room_id: int
 
 
-class DrawBase(SQLModel):
+class DrawingBase(SQLModel):
     id: int
     room_id: int
     x: float

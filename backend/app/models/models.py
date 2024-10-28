@@ -1,7 +1,7 @@
 from typing import List
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship
-from models.bases import UserBase, RoomBase, PlayerBase, DrawBase
+from models.bases import UserBase, RoomBase, PlayerBase, DrawingBase
 from models.enums import RoomStatus
 
 
@@ -19,6 +19,10 @@ class Room(RoomBase, table=True):
         back_populates="room",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
+    drawings: List["Drawing"] = Relationship(
+        back_populates="room",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
 
 
 class Player(PlayerBase, table=True):
@@ -28,6 +32,7 @@ class Player(PlayerBase, table=True):
     room: Room = Relationship(back_populates="players")
 
 
-class Draw(DrawBase, table=True):
+class Drawing(DrawingBase, table=True):
     id: int = Field(primary_key=True, index=True)
     room_id: int = Field(foreign_key="room.id", index=True)
+    room: Room = Relationship(back_populates="drawings")
