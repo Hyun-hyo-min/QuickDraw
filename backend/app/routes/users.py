@@ -5,7 +5,7 @@ from google.auth.transport import requests
 from auth.jwt import create_access_token
 from database.connection import get_db_session
 from models.models import User
-from schemas.schemas import TokenRequest
+from dto.request_dto import TokenRequest
 from config import settings
 
 router = APIRouter(

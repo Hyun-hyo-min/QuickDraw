@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, WebSocket, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 from redis import asyncio as aioredis
+from database.connection import get_db_session
 from service.redis import get_redis_pool
 from service.sessions import WebSocketSession
 
@@ -12,9 +14,10 @@ async def room_websocket_endpoint(
     websocket: WebSocket,
     room_id: int,
     email: str,
-    redis: Annotated[aioredis.Redis, Depends(get_redis_pool)]
+    redis: Annotated[aioredis.Redis, Depends(get_redis_pool)],
+    db_session: AsyncSession = Depends(get_db_session)
 ):
-    session = WebSocketSession(room_id, email, websocket, redis)
+    session = WebSocketSession(room_id, email, websocket, redis, db_session)
 
     try:
         await session.run()
