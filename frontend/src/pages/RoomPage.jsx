@@ -23,6 +23,19 @@ function RoomPage() {
             try {
                 const roomResponse = await axiosInstance.get(`/rooms/${roomId}`);
                 setRoomDetails(roomResponse.data);
+
+                const drawingsResponse = await axiosInstance.get(`/rooms/${roomId}/drawings`);
+                const context = canvasRef.current.getContext("2d");
+
+                if (context) {
+                    setCtx(context);
+                    drawingsResponse.data.forEach(({ x, y, prevX, prevY }) => {
+                        context.beginPath();
+                        context.moveTo(prevX, prevY);
+                        context.lineTo(x, y);
+                        context.stroke();
+                    });
+                }
             } catch (error) {
                 console.error('Error initializing room:', error.response?.data?.detail);
             }
@@ -67,6 +80,8 @@ function RoomPage() {
                 }, 10000);
             }
         };
+
+        ws.onclose = () => { };
 
         return () => {
             ws.close();

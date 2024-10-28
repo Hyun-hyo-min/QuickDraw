@@ -12,7 +12,7 @@ async def get_redis_pool():
 
 
 class RedisSessionManager:
-    def __init__(self, session_id: str, redis: aioredis.Redis):
+    def __init__(self, session_id, redis: aioredis.Redis):
         self.redis = redis
         self.pubsub = self.redis.pubsub()
         self.session_key = f"{session_id}:clients"

@@ -1,20 +1,23 @@
 import asyncio
-import json
 import logging
+import json
 from redis import asyncio as aioredis
 from fastapi import WebSocket, HTTPException, status
 from fastapi.websockets import WebSocketDisconnect
+from sqlalchemy.ext.asyncio import AsyncSession
 from service.redis import RedisSessionManager
+from models.models import Draw
 
 logger = logging.getLogger(__name__)
 
 
 class WebSocketSession:
-    def __init__(self, id: int, email: str, websocket: WebSocket, redis: aioredis.Redis):
-        self.id = str(id)
+    def __init__(self, id, email: str, websocket: WebSocket, redis: aioredis.Redis, db_session: AsyncSession):
+        self.id = id
         self.email = email
         self.websocket = websocket
         self.session_manager = RedisSessionManager(id, redis)
+        self.db_session = db_session
         self.is_closed = False
 
     async def validate_session(self):
@@ -40,6 +43,19 @@ class WebSocketSession:
         try:
             while True:
                 received_data = await self.websocket.receive_text()
+                data = json.loads(received_data)
+
+                if data.get("type") == "draw":
+                    draw_data = Draw(
+                        room_id=self.id,
+                        x=data["x"],
+                        y=data["y"],
+                        prev_x=data["prevX"],
+                        prev_y=data["prevY"]
+                    )
+                    self.db_session.add(draw_data)
+                    await self.db_session.commit()
+
                 await self.session_manager.publish(received_data)
         except WebSocketDisconnect:
             logger.info(f"WebSocket disconnected: {self.websocket.client}")
