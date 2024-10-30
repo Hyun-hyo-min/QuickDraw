@@ -2,11 +2,12 @@ import asyncio
 import logging
 import json
 from abc import ABC, abstractmethod
-from fastapi import WebSocket, HTTPException, status
+from fastapi import WebSocket, HTTPException, status, Depends
 from fastapi.websockets import WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
-from service.redis_managers import ClientSessionInterface, DrawSessionInterface
-from service.db_managers import DBManagerInterface
+from service.redis_managers import ClientSessionInterface, DrawSessionInterface, get_client_manager, get_draw_manager, get_redis_pool
+from service.db_managers import DBManagerInterface, get_db_manager
+from database.connection import get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -127,3 +128,30 @@ class RoomWebSocketSession(BaseWebSocketSession):
             logger.info(f"Room WebSocket disconnected: {
                         self.websocket.client}")
             await self.handle_disconnection()
+
+
+class RoomWebSocketSessionFactory:
+    def __init__(
+        self,
+        client_manager: ClientSessionInterface = Depends(get_client_manager),
+        draw_manager: DrawSessionInterface = Depends(get_draw_manager),
+        db_manager: DBManagerInterface = Depends(get_db_manager),
+        db_session: AsyncSession = Depends(get_db_session)
+    ):
+        self.client_manager = client_manager
+        self.draw_manager = draw_manager
+        self.db_manager = db_manager
+        self.db_session = db_session
+
+    def create_session(
+        self, session_id: int, email: str, websocket: WebSocket
+    ) -> RoomWebSocketSession:
+        return RoomWebSocketSession(
+            session_id,
+            email,
+            websocket,
+            self.client_manager,
+            self.draw_manager,
+            self.db_manager,
+            self.db_session
+        )
