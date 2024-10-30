@@ -1,8 +1,10 @@
 import logging
 import json
+from abc import ABC, abstractmethod
+from fastapi import Depends
 from redis import asyncio as aioredis
+
 from config import settings
-from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -12,12 +14,55 @@ async def get_redis_pool():
     return await aioredis.from_url(redis_url)
 
 
-class RedisSessionManager:
+class ClientSessionInterface(ABC):
+    @abstractmethod
+    async def add_client(self, client: str):
+        pass
+
+    @abstractmethod
+    async def remove_client(self, client: str):
+        pass
+
+    @abstractmethod
+    async def get_client_count(self) -> int:
+        pass
+
+    @abstractmethod
+    async def publish_client(self, data: str):
+        pass
+
+    @abstractmethod
+    async def listen(self):
+        pass
+
+    @abstractmethod
+    async def delete_client_session(self):
+        pass
+
+
+class DrawSessionInterface(ABC):
+    @abstractmethod
+    async def session_exists(self):
+        pass
+
+    @abstractmethod
+    async def save_draw_data(self, draw_data: dict):
+        pass
+
+    @abstractmethod
+    async def get_all_draw_data(self):
+        pass
+
+    @abstractmethod
+    async def clear_draw_data(self):
+        pass
+
+
+class RedisClientSessionManager(ClientSessionInterface):
     def __init__(self, session_id, redis: aioredis.Redis):
         self.redis = redis
         self.pubsub = self.redis.pubsub()
         self.client_key = f"{session_id}:clients"
-        self.draw_key = f"{session_id}:draws"
 
     async def session_exists(self) -> bool:
         return await self.redis.exists(self.client_key) > 0
@@ -43,6 +88,15 @@ class RedisSessionManager:
     async def delete_client_session(self):
         await self.redis.delete(self.client_key)
 
+
+class RedisDrawSessionManager(DrawSessionInterface):
+    def __init__(self, session_id, redis: aioredis.Redis):
+        self.redis = redis
+        self.draw_key = f"{session_id}:draws"
+
+    async def session_exists(self) -> bool:
+        return await self.redis.exists(self.draw_key) > 0
+
     async def save_draw_data(self, draw_data: dict):
         await self.redis.rpush(self.draw_key, json.dumps(draw_data))
 
@@ -52,3 +106,17 @@ class RedisSessionManager:
 
     async def clear_draw_data(self):
         await self.redis.delete(self.draw_key)
+
+
+def get_client_manager(
+    session_id: int,
+    redis: aioredis.Redis = Depends(get_redis_pool)
+) -> ClientSessionInterface:
+    return RedisClientSessionManager(session_id, redis)
+
+
+def get_draw_manager(
+    session_id: int,
+    redis: aioredis.Redis = Depends(get_redis_pool)
+) -> DrawSessionInterface:
+    return RedisDrawSessionManager(session_id, redis)
