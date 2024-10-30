@@ -3,15 +3,30 @@ import json
 from abc import ABC, abstractmethod
 from fastapi import Depends
 from redis import asyncio as aioredis
-
+from redis.asyncio import Redis
 from config import settings
 
 logger = logging.getLogger(__name__)
 
 
+class RedisClient:
+    _instance = None
+
+    @classmethod
+    async def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = await Redis.from_url(f"redis://{settings.REDIS_HOST}:6379/0")
+        return cls._instance
+
+    @classmethod
+    async def close_instance(cls):
+        if cls._instance:
+            await cls._instance.close()
+            cls._instance = None
+
+
 async def get_redis_pool():
-    redis_url = f"redis://{settings.REDIS_HOST}:6379/0"
-    return await aioredis.from_url(redis_url)
+    return await RedisClient.get_instance()
 
 
 class ClientSessionInterface(ABC):
