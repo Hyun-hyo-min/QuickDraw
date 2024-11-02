@@ -20,8 +20,8 @@ function AppContent() {
   }, [ACCESS_TOKEN, navigate]);
 
   const handleLogout = () => {
-    Logout();
     clearCurrentRoomId();
+    Logout();
   };
 
   return (
