@@ -163,7 +163,7 @@ async def delete_room(room_id: int, email: str = Depends(get_current_user), sess
 
 
 @router.get("/{room_id}/drawings")
-async def get_drawings(room_id: int, db: AsyncSession = Depends(get_db_session)):
-    result = await db.execute(select(Drawing).where(Drawing.room_id == room_id))
+async def get_drawings(room_id: int, session: AsyncSession = Depends(get_db_session)):
+    result = await session.execute(select(Drawing).where(Drawing.room_id == room_id))
     drawings = result.scalars().all()
-    return [{"x": d.x, "y": d.y, "prevX": d.prev_x, "prevY": d.prev_y} for d in drawings]
+    return [{"x": drawing.x, "y": drawing.y, "prevX": drawing.prev_x, "prevY": drawing.prev_y} for drawing in drawings]

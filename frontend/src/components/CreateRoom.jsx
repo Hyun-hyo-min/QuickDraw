@@ -16,6 +16,7 @@ function CreateRoom() {
             const roomId = response.data.room_id;
             navigate(`/rooms/${roomId}`)
         } catch (error) {
+            navigate(`/`)
             console.error('Error creating room:', error.response.data.detail);
         }
     };
