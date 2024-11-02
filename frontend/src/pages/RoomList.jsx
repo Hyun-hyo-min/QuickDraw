@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getToken } from '../utils/Authenticate';
 import axiosInstance from '../apis/axiosInstance';
 import CreateRoom from '../components/CreateRoom';
 
@@ -8,6 +9,7 @@ function RoomList() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [currentRoom, setCurrentRoom] = useState(null);
+    const ACCESS_TOKEN = getToken();
     const pageSize = 10;
     const navigate = useNavigate();
 
@@ -20,8 +22,11 @@ function RoomList() {
                 console.error('Error fetching current room:', error.response?.data?.detail || 'Unknown error');
             }
         };
-        fetchCurrentRoom();
-    }, []);
+
+        if (ACCESS_TOKEN) {
+            fetchCurrentRoom();
+        }
+    }, [ACCESS_TOKEN]);
 
     useEffect(() => {
         const fetchRooms = async () => {
