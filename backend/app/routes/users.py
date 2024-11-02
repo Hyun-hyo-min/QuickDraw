@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from auth.jwt import create_access_token
+from auth.jwt import create_access_token, get_current_user
 from database.connection import get_db_session
-from models.models import User
+from models.models import User, Player
 from dto.request_dto import TokenRequest
 from config import settings
 
@@ -51,3 +52,21 @@ async def login(body: TokenRequest, session: AsyncSession = Depends(get_db_sessi
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Server error: {str(e)}"
         )
+
+
+@router.get("/rooms")
+async def get_users_room(
+    email: str = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session)
+) -> dict:
+    result = await session.execute(select(Player).where(Player.email == email))
+    player = result.scalars().first()
+
+    if not player:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="user not in room"
+        )
+
+    room_id = player.room_id
+    return {"room_id": room_id}

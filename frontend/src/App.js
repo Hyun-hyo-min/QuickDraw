@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { GoogleLoginBtn } from './components/GoogleLoginBtn';
 import { getToken, Logout } from './utils/Authenticate';
-import { getCurrentRoomId } from './utils/RoomUtils';
+import { getCurrentRoomId, clearCurrentRoomId } from './utils/RoomUtils';
 import { RoomList, RoomPage } from './pages';
 
 function AppContent() {
@@ -14,12 +14,14 @@ function AppContent() {
     const roomId = getCurrentRoomId();
     if (ACCESS_TOKEN && roomId) {
       navigate(`/rooms/${roomId}`);
+    } else if (!ACCESS_TOKEN) {
+      navigate('/');
     }
   }, [ACCESS_TOKEN, navigate]);
 
   const handleLogout = () => {
     Logout();
-    navigate('/');
+    clearCurrentRoomId();
   };
 
   return (
