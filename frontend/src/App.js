@@ -17,10 +17,15 @@ function AppContent() {
     }
   }, [ACCESS_TOKEN, navigate]);
 
+  const handleLogout = () => {
+    Logout();
+    navigate('/');
+  };
+
   return (
     <div className="App">
       {!ACCESS_TOKEN && <GoogleLoginBtn />}
-      {ACCESS_TOKEN && <button onClick={Logout}>로그아웃</button>}
+      {ACCESS_TOKEN && <button onClick={handleLogout}>로그아웃</button>}
 
       <Routes>
         <Route path="/" element={<RoomList />} />
