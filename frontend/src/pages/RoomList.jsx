@@ -7,8 +7,21 @@ function RoomList() {
     const [rooms, setRooms] = useState([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [currentRoom, setCurrentRoom] = useState(null);
     const pageSize = 10;
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchCurrentRoom = async () => {
+            try {
+                const response = await axiosInstance.get('users/rooms');
+                setCurrentRoom(response.data.room_id ? response.data : null);
+            } catch (error) {
+                console.error('Error fetching current room:', error.response?.data?.detail || 'Unknown error');
+            }
+        };
+        fetchCurrentRoom();
+    }, []);
 
     useEffect(() => {
         const fetchRooms = async () => {
@@ -38,6 +51,14 @@ function RoomList() {
 
     return (
         <div>
+            {currentRoom && (
+                <div style={{ position: 'absolute', top: 15, right: 15, backgroundColor: '#f0f0f0', padding: '10px', borderRadius: '5px' }}>
+                    <h3>Current Room</h3>
+                    <p>Room ID: {currentRoom.room_id}</p>
+                    <button onClick={() => navigate(`/rooms/${currentRoom.room_id}`)}>Go to Room</button>
+                </div>
+            )}
+
             <CreateRoom />
             <h2>Available Rooms</h2>
             <ul>

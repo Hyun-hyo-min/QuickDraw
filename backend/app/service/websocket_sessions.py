@@ -71,7 +71,7 @@ class BaseWebSocketSession(ABC):
 
     async def save_draw_data_to_db(self):
         while not self.is_closed:
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
 
             if not await self.draw_manager.session_exists():
                 logger.info(
