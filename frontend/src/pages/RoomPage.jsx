@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../apis/axiosInstance';
 import { BASE_URL, wsProtocol } from '../config/config';
 import { getUserEmail } from '../utils/Authenticate';
+import { getCurrentRoomId, setCurrentRoomId, clearCurrentRoomId } from '../utils/RoomUtils';
 import { Canvas, RoomInfo, PlayerList, Chat } from '../components';
 
 function RoomPage() {
@@ -19,6 +20,13 @@ function RoomPage() {
     const currentUser = getUserEmail();
 
     useEffect(() => {
+        const currentRoomId = getCurrentRoomId();
+        if (currentRoomId && currentRoomId !== roomId) {
+            navigate(`/rooms/${currentRoomId}`);
+            return;
+        }
+        setCurrentRoomId(roomId);
+
         const initializeRoom = async () => {
             try {
                 const roomResponse = await axiosInstance.get(`/rooms/${roomId}`);
@@ -37,6 +45,7 @@ function RoomPage() {
                     });
                 }
             } catch (error) {
+                navigate('/')
                 console.error('Error initializing room:', error.response?.data?.detail);
             }
         };
@@ -161,8 +170,14 @@ function RoomPage() {
             <RoomInfo
                 roomDetails={roomDetails}
                 currentUser={currentUser}
-                onDeleteRoom={handleDeleteRoom}
-                onQuitRoom={handleQuitRoom}
+                onDeleteRoom={() => {
+                    clearCurrentRoomId();
+                    handleDeleteRoom();
+                }}
+                onQuitRoom={() => {
+                    clearCurrentRoomId();
+                    handleQuitRoom();
+                }}
             />
             <div className="room-container">
                 <div className="main-container">

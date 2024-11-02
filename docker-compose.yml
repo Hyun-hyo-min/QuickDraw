@@ -42,6 +42,10 @@ services:
     image: quickdraw/frontend:latest
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.react.rule=Host(`quick-draw-pjt.com`)"
+      - "traefik.http.routers.react.rule=Host(`quick-draw-pjt.com`) || Host(`www.quick-draw-pjt.com`)"
       - "traefik.http.routers.react.entrypoints=websecure"
       - "traefik.http.routers.react.tls.certresolver=myresolver"
+      - "traefik.http.middlewares.redirect-to-non-www.redirectregex.regex=^https?://www\\.(.*)"
+      - "traefik.http.middlewares.redirect-to-non-www.redirectregex.replacement=https://$${1}"
+      - "traefik.http.middlewares.redirect-to-non-www.redirectregex.permanent=true"
+      - "traefik.http.routers.react.middlewares=redirect-to-non-www"
