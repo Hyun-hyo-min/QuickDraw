@@ -6,6 +6,7 @@ from google.auth.transport import requests
 from auth.jwt import create_access_token, get_current_user
 from database.connection import get_db_session
 from database.repositories.user_repository import UserRepository
+from database.repositories.player_repository import PlayerRepository
 from models.models import User, Player
 from dto.request_dto import TokenRequest
 from config import settings
@@ -45,25 +46,24 @@ async def login(
 
         return {"access_token": access_token}
 
-    except ValueError as ve:
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid token"
         )
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Server error: {str(e)}"
+            detail="Server error"
         )
 
 
 @router.get("/rooms")
 async def get_users_room(
     email: str = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    player_repository: PlayerRepository = Depends(PlayerRepository),
 ) -> dict:
-    result = await session.execute(select(Player).where(Player.email == email))
-    player = result.scalars().first()
+    player = await player_repository.find_by_filter({"email": email})
 
     if not player:
         raise HTTPException(

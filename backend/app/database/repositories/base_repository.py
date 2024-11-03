@@ -66,7 +66,6 @@ class BaseRepository(Repository[ModelType]):
     async def insert_data(self, data: ModelType) -> None:
         self.session.add(data)
         await self.session.commit()
-        await self.session.refresh(data)
 
     async def insert_datas(self, datas: list[ModelType]) -> None:
         self.session.add_all(datas)
