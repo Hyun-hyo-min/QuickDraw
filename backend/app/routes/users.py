@@ -5,6 +5,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from auth.jwt import create_access_token, get_current_user
 from database.connection import get_db_session
+from database.repositories.user_repository import UserRepository
 from models.models import User, Player
 from dto.request_dto import TokenRequest
 from config import settings
@@ -15,10 +16,14 @@ router = APIRouter(
 
 
 @router.post("/login")
-async def login(body: TokenRequest, session: AsyncSession = Depends(get_db_session)) -> dict:
+async def login(
+    body: TokenRequest,
+    user_repository: UserRepository = Depends(UserRepository),
+) -> dict:
     try:
         idinfo = id_token.verify_oauth2_token(
-            body.credential, requests.Request(), settings.GOOGLE_CLIENT_ID)
+            body.credential, requests.Request(), settings.GOOGLE_CLIENT_ID
+        )
 
         email = idinfo.get("email")
         name = idinfo.get("name")
@@ -29,20 +34,18 @@ async def login(body: TokenRequest, session: AsyncSession = Depends(get_db_sessi
                 detail="Invalid token or missing email",
             )
 
-        existing_user = await session.get(User, email)
+        existing_user = await user_repository.get_data_by_id(email)
 
         if existing_user:
             access_token = create_access_token(email)
         else:
             new_user = User(email=email, name=name)
-            session.add(new_user)
-            await session.commit()
-            await session.refresh(new_user)
+            await user_repository.insert_data(new_user)
             access_token = create_access_token(email)
 
         return {"access_token": access_token}
 
-    except ValueError:
+    except ValueError as ve:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid token"
