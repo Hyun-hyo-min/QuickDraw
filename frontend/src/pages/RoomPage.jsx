@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../apis/axiosInstance';
 import { BASE_URL, wsProtocol } from '../config/config';
-import { getUserEmail } from '../utils/Authenticate';
+import { getUserId } from '../utils/Authenticate';
 import { getCurrentRoomId, setCurrentRoomId, clearCurrentRoomId } from '../utils/RoomUtils';
 import { Canvas, RoomInfo, PlayerList, Chat } from '../components';
 
@@ -17,7 +17,7 @@ function RoomPage() {
     const prevCoordsRef = useRef({ prevX: 0, prevY: 0 });
     const navigate = useNavigate();
 
-    const currentUser = getUserEmail();
+    const currentUser = getUserId();
 
     useEffect(() => {
         const currentRoomId = getCurrentRoomId();
@@ -29,10 +29,10 @@ function RoomPage() {
 
         const initializeRoom = async () => {
             try {
-                const roomResponse = await axiosInstance.get(`/rooms/${roomId}`);
+                const roomResponse = await axiosInstance.get(`/room/${roomId}`);
                 setRoomDetails(roomResponse.data);
 
-                const drawingsResponse = await axiosInstance.get(`/rooms/${roomId}/drawings`);
+                const drawingsResponse = await axiosInstance.get(`/draw/${roomId}`);
                 const context = canvasRef.current.getContext("2d");
 
                 if (context) {
@@ -67,7 +67,7 @@ function RoomPage() {
     useEffect(() => {
         if (!ctx || !roomDetails) return;
 
-        const ws = new WebSocket(`${wsProtocol}://${BASE_URL}/ws/rooms/${roomId}/${currentUser}`);
+        const ws = new WebSocket(`${wsProtocol}://${BASE_URL}/ws/draw/${roomId}/user/${currentUser}`);
         socketRef.current = ws;
 
         ws.onopen = () => { };
@@ -133,7 +133,7 @@ function RoomPage() {
 
     const handleDeleteRoom = async () => {
         try {
-            await axiosInstance.delete(`rooms/${roomId}`);
+            await axiosInstance.delete(`room/${roomId}`);
             navigate('/');
         } catch (error) {
             console.error('Error deleting room:', error.response?.data?.detail);
@@ -142,7 +142,7 @@ function RoomPage() {
 
     const handleQuitRoom = async () => {
         try {
-            await axiosInstance.delete(`rooms/${roomId}/players`);
+            await axiosInstance.delete(`room/${roomId}/players`);
             navigate('/');
         } catch (error) {
             console.error('Error quitting room:', error.response?.data?.detail);
@@ -153,7 +153,7 @@ function RoomPage() {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && newMessage.trim()) {
             const chatData = {
                 type: 'chat',
-                email: currentUser,
+                user_id: currentUser,
                 message: newMessage,
             };
             socketRef.current.send(JSON.stringify(chatData));

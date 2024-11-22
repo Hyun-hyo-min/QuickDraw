@@ -1,0 +1,14 @@
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    BASE_URL: str
+    USER_SERVICE_URL: str
+    ROOM_SERVICE_URL: str
+    DRAW_SERVICE_URL: str
+
+    class Config:
+        env_file = ".env"
+
+
+settings = Settings()

@@ -12,11 +12,12 @@ export const Logout = () => {
 	window.location.reload();
 }
 
-export const getUserEmail = () => {
+export const getUserId = () => {
 	const token = localStorage.getItem('access_token');
 	if (!token) return null;
 
 	const accessToken = token;
 	const payload = JSON.parse(atob(accessToken.split('.')[1]));
-	return payload.email;
+	console.log(payload.id)
+	return payload.id;
 };

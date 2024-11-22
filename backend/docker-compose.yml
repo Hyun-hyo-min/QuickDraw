@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - user-service
+      - room-service
+      - draw-service
+    networks:
+      - backend-network
+    restart: always
+
+  user-service:
+    build:
+      context: ./user-service
+    ports:
+      - "8001:8000"
+    networks:
+      - backend-network
+    restart: always
+
+  room-service:
+    build:
+      context: ./room-service
+    ports:
+      - "8002:8000"
+    networks:
+      - backend-network
+    restart: always
+
+  draw-service:
+    build:
+      context: ./draw-service
+    ports:
+      - "8003:8000"
+    networks:
+      - backend-network
+    restart: always
+
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - backend-network
+    restart: always
+
+
+networks:
+  backend-network:
+    driver: bridge

@@ -10,7 +10,7 @@ function CreateRoom() {
         e.preventDefault();
 
         try {
-            const response = await axiosInstance.post('/rooms', {
+            const response = await axiosInstance.post('/room', {
                 room_name: roomName
             });
             const roomId = response.data.room_id;

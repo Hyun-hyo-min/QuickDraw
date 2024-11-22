@@ -16,7 +16,7 @@ function RoomList() {
     useEffect(() => {
         const fetchCurrentRoom = async () => {
             try {
-                const response = await axiosInstance.get('users/rooms');
+                const response = await axiosInstance.get('room/current');
                 setCurrentRoom(response.data.room_id ? response.data : null);
             } catch (error) {
                 console.error('Error fetching current room:', error.response?.data?.detail || 'Unknown error');
@@ -31,7 +31,7 @@ function RoomList() {
     useEffect(() => {
         const fetchRooms = async () => {
             try {
-                const response = await axiosInstance.get(`/rooms?page=${page}&page_size=${pageSize}`);
+                const response = await axiosInstance.get(`/room?page=${page}&page_size=${pageSize}`);
                 setRooms(response.data.rooms || []);
                 setTotalPages(response.data.total_pages);
             } catch (error) {
@@ -43,7 +43,7 @@ function RoomList() {
 
     const handleJoinRoom = async (roomId) => {
         try {
-            await axiosInstance.post(`/rooms/${roomId}/players`);
+            await axiosInstance.post(`/room/${roomId}/players`);
             navigate(`/rooms/${roomId}`);
         } catch (error) {
             console.error('Error joining room:', error.response?.data?.detail || 'Unknown error');
@@ -70,7 +70,7 @@ function RoomList() {
                 {rooms.length > 0 ? (
                     rooms.map(room => (
                         <li key={room.id}>
-                            {room.id} - {room.name} : {room.current_players}/{room.max_players}
+                            {room.id} - {room.name} : {room.player_count}/{room.max_players}
                             <button onClick={() => handleJoinRoom(room.id)}>Join Room</button>
                         </li>
                     ))

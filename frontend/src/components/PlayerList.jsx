@@ -3,15 +3,15 @@ function PlayerList({ players }) {
         <div className="players-container">
             <div className="players-left">
                 {players.slice(0, 4).map((player, index) => (
-                    <div key={index} className="player-name">
-                        {player}
+                    <div key={player.id} className="player-name">
+                        {player.user_id}
                     </div>
                 ))}
             </div>
             <div className="players-right">
                 {players.slice(4, 8).map((player, index) => (
-                    <div key={index} className="player-name">
-                        {player}
+                    <div key={player.id} className="player-name">
+                        {player.user_id}
                     </div>
                 ))}
             </div>
@@ -19,4 +19,4 @@ function PlayerList({ players }) {
     );
 }
 
-export default PlayerList
+export default PlayerList;
