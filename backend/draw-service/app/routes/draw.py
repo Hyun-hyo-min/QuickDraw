@@ -27,7 +27,7 @@ async def room_websocket_endpoint(
     session_factory: RoomWebSocketSessionFactory = Depends(
         RoomWebSocketSessionFactory)
 ):
-    session = session_factory.create_session(session_id, user_id, websocket)
+    session = session_factory.create_session(str(session_id), str(user_id), websocket)
 
     try:
         await session.run()

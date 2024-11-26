@@ -17,7 +17,7 @@ class BaseWebSocketSession(ABC):
     def __init__(
         self,
         session_id: str,
-        email: str,
+        user_id: str,
         websocket: WebSocket,
         client_manager: ClientSessionInterface,
         draw_manager: DrawSessionInterface,
@@ -25,7 +25,7 @@ class BaseWebSocketSession(ABC):
         db_session: AsyncSession
     ):
         self.session_id = session_id
-        self.email = email
+        self.user_id = user_id
         self.websocket = websocket
         self.client_manager = client_manager
         self.draw_manager = draw_manager
@@ -36,7 +36,7 @@ class BaseWebSocketSession(ABC):
     async def validate_session(self):
         client_count = await self.client_manager.get_client_count()
         if client_count is None:
-            await self.client_manager.add_client(self.email)
+            await self.client_manager.add_client(self.user_id)
             return
         if client_count >= 8:
             raise HTTPException(
@@ -54,12 +54,12 @@ class BaseWebSocketSession(ABC):
             self.is_closed = True
 
     async def handle_disconnection(self):
-        await self.client_manager.remove_client(self.email)
+        await self.client_manager.remove_client(self.user_id)
         client_count = await self.client_manager.get_client_count()
         if client_count == 0:
             await self.client_manager.delete_client_session()
         self.is_closed = True
-        logger.info(f"Client {self.email} disconnected from session {
+        logger.info(f"Client {self.user_id} disconnected from session {
                     self.session_id}")
 
     @abstractmethod
@@ -100,7 +100,7 @@ class BaseWebSocketSession(ABC):
 class RoomWebSocketSession(BaseWebSocketSession):
     async def accept_connection(self):
         await self.websocket.accept()
-        await self.client_manager.add_client(self.email)
+        await self.client_manager.add_client(self.user_id)
 
     async def handle_receive_messages(self):
         try:
@@ -145,11 +145,11 @@ class RoomWebSocketSessionFactory:
         self.db_session = db_session
 
     def create_session(
-        self, session_id: UUID, email: str, websocket: WebSocket
+        self, session_id: str, user_id: str, websocket: WebSocket
     ) -> RoomWebSocketSession:
         return RoomWebSocketSession(
             session_id,
-            email,
+            user_id,
             websocket,
             self.client_manager,
             self.draw_manager,

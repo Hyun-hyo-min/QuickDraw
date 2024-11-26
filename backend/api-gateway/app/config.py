@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     USER_SERVICE_URL: str
     ROOM_SERVICE_URL: str
     DRAW_SERVICE_URL: str
+    TIME_OUT: float = 10.0
 
     class Config:
         env_file = ".env"

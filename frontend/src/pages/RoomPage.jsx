@@ -67,7 +67,7 @@ function RoomPage() {
     useEffect(() => {
         if (!ctx || !roomDetails) return;
 
-        const ws = new WebSocket(`${wsProtocol}://${BASE_URL}/ws/draw/${roomId}/user/${currentUser}`);
+        const ws = new WebSocket(`${wsProtocol}://${BASE_URL}/api/v1/draw/${roomId}/user/${currentUser}`);
         socketRef.current = ws;
 
         ws.onopen = () => { };
