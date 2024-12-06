@@ -1,51 +1,76 @@
+version: "3.8"
+
 services:
-  traefik:
-    image: traefik:v2.9
-    command:
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--providers.docker=true"
-      - "--api.insecure=true"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=quickdrawpjt@gmail.com"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+  nginx:
+    image: nginx:latest
+    container_name: nginx
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./letsencrypt:/letsencrypt"
-
-  fastapi:
-    image: quickdraw/backend:latest
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.fastapi.rule=Host(`quick-draw-pjt.com`) && (PathPrefix(`/api/v1`) || PathPrefix(`/ws/`))"
-      - "traefik.http.routers.fastapi.entrypoints=websecure"
-      - "traefik.http.routers.fastapi.tls.certresolver=myresolver"
-      - "traefik.http.services.fastapi.loadbalancer.server.port=8000"
+      - ./nginx:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+      - ./react/build:/usr/share/nginx/html
     depends_on:
-      - redis
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - certbot
+      - api-gateway
+      - react
+    networks:
+      - backend-network
+    restart: always
 
-  redis:
-    image: "redis:6.2"
-    ports:
-      - "6379:6379"
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 24h & wait $!; certbot renew --quiet; done'"
+    networks:
+      - backend-network
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    networks:
+      - backend-network
+    restart: always
 
   react:
-    image: quickdraw/frontend:latest
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.react.rule=Host(`quick-draw-pjt.com`) || Host(`www.quick-draw-pjt.com`)"
-      - "traefik.http.routers.react.entrypoints=websecure"
-      - "traefik.http.routers.react.tls.certresolver=myresolver"
-      - "traefik.http.middlewares.redirect-to-non-www.redirectregex.regex=^https?://www\\.(.*)"
-      - "traefik.http.middlewares.redirect-to-non-www.redirectregex.replacement=https://$${1}"
-      - "traefik.http.middlewares.redirect-to-non-www.redirectregex.permanent=true"
-      - "traefik.http.routers.react.middlewares=redirect-to-non-www"
+    build:
+      context: ./react
+    networks:
+      - backend-network
+    restart: always
+
+  user-service:
+    build:
+      context: ./user-service
+    networks:
+      - backend-network
+    restart: always
+
+  room-service:
+    build:
+      context: ./room-service
+    networks:
+      - backend-network
+    restart: always
+
+  draw-service:
+    build:
+      context: ./draw-service
+    networks:
+      - backend-network
+    restart: always
+
+  redis:
+    image: redis
+    networks:
+      - backend-network
+    restart: always
+
+networks:
+  backend-network:
+    driver: bridge

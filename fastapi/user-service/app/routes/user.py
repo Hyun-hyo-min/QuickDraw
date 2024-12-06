@@ -23,7 +23,7 @@ async def validate_user(
     user_repository: UserRepository = Depends(UserRepository),
     redis: Redis = Depends(get_redis_client)
 ):
-    cached_result = await redis.get(f"user:{user_id}")
+    cached_result = await redis.get(f"user:{str(user_id)}")
     if cached_result:
         return {"message": "User is valid"}
 
@@ -31,7 +31,7 @@ async def validate_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    await redis.set(f"user:{user_id}", "valid", ex=3600)
+    await redis.set(f"user:{str(user_id)}", "valid", ex=3600)
     return {"message": "User is valid"}
 
 
