@@ -38,4 +38,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(draw.router, tags=["Draw"])
+app.include_router(draw.router, prefix="/draw", tags=["Draw"])

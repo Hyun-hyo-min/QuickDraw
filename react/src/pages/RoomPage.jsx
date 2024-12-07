@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../apis/axiosInstance';
-import { BASE_URL, wsProtocol } from '../config/config';
+import { BASE_URL, API_URL, wsProtocol } from '../config/config';
 import { getUserId } from '../utils/Authenticate';
 import { getCurrentRoomId, setCurrentRoomId, clearCurrentRoomId } from '../utils/RoomUtils';
 import { Canvas, RoomInfo, PlayerList, Chat } from '../components';
@@ -67,7 +67,7 @@ function RoomPage() {
     useEffect(() => {
         if (!ctx || !roomDetails) return;
 
-        const ws = new WebSocket(`${wsProtocol}://${BASE_URL}/api/v1/draw/${roomId}/user/${currentUser}`);
+        const ws = new WebSocket(`${wsProtocol}://${BASE_URL}/ws/draw/${roomId}/user/${currentUser}`);
         socketRef.current = ws;
 
         ws.onopen = () => { };

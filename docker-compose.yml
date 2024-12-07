@@ -2,75 +2,33 @@ version: "3.8"
 
 services:
   nginx:
-    image: nginx:latest
-    container_name: nginx
+    image: hyomin2677/quickdraw-nginx
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx:/etc/nginx/conf.d
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-      - ./react/build:/usr/share/nginx/html
     depends_on:
-      - certbot
       - api-gateway
-      - react
-    networks:
-      - backend-network
     restart: always
-
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do sleep 24h & wait $!; certbot renew --quiet; done'"
-    networks:
-      - backend-network
 
   api-gateway:
-    build:
-      context: ./api-gateway
-    networks:
-      - backend-network
-    restart: always
-
-  react:
-    build:
-      context: ./react
-    networks:
-      - backend-network
+    image: hyomin2677/quickdraw-api-gateway
     restart: always
 
   user-service:
-    build:
-      context: ./user-service
-    networks:
-      - backend-network
+    image: hyomin2677/quickdraw-user-service
     restart: always
 
   room-service:
-    build:
-      context: ./room-service
-    networks:
-      - backend-network
+    image: hyomin2677/quickdraw-room-service
     restart: always
 
   draw-service:
-    build:
-      context: ./draw-service
-    networks:
-      - backend-network
+    image: hyomin2677/quickdraw-draw-service
     restart: always
 
   redis:
     image: redis
-    networks:
-      - backend-network
     restart: always
-
-networks:
-  backend-network:
-    driver: bridge

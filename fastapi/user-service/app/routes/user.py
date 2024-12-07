@@ -35,7 +35,7 @@ async def validate_user(
     return {"message": "User is valid"}
 
 
-@router.post("/")
+@router.post("")
 async def sign_up(
     body: SignUpRequest,
     user_repository: UserRepository = Depends(UserRepository)

@@ -11,8 +11,10 @@ origins = [
     "http://127.0.0.1:3000",
     "http://localhost:3000",
     f"https://{settings.BASE_URL}",
-    f"https://{settings.BASE_URL.replace('www.', '')}",
+    f"https://www.{settings.BASE_URL}",
 ]
+
+app.router.redirect_slashes = False
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,4 +24,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(proxy.router, prefix="/api/v1")
+app.include_router(proxy.router)
