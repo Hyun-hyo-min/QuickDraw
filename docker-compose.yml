@@ -11,10 +11,15 @@ services:
       - ./certbot/www:/var/www/certbot
     depends_on:
       - api-gateway
+      - websocket-gateway
     restart: always
 
   api-gateway:
     image: hyomin2677/quickdraw-api-gateway
+    restart: always
+
+  websocket-gateway:
+    image: hyomin2677/quickdraw-websocket-gateway
     restart: always
 
   user-service:

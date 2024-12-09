@@ -44,6 +44,7 @@ jobs:
           cd /home/ubuntu/
           docker-compose stop user-service
           docker-compose rm -f user-service
+          docker image prune -af
           docker-compose pull user-service
           docker-compose up -d user-service
           EOF
