@@ -30,8 +30,8 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           cd fastapi/user-service
-          docker build -t ${username}/quickdraw-user-service .
-          docker push ${username}/quickdraw-user-service
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/quickdraw-user-service .
+          docker push ${{ secrets.DOCKER_USERNAME }}/quickdraw-user-service
 
       - name: Deploy
         run: |
