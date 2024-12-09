@@ -14,8 +14,8 @@ jobs:
 
       - name: Create env file
         run: |
-          echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> fastapi/user-service/.env
-          echo BASE_URL=${{ secrets.BASE_URL }} > fastapi/user-service/.env
+          echo SECRET_KEY=${{ secrets.SECRET_KEY }} > fastapi/user-service/.env
+          echo BASE_URL=${{ secrets.BASE_URL }} >> fastapi/user-service/.env
           echo GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} >> fastapi/user-service/.env
           echo GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} >> fastapi/user-service/.env
           echo USER_DB_URL=${{ secrets.DB_URL }}/user >> fastapi/user-service/.env
