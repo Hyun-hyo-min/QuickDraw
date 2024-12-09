@@ -43,6 +43,7 @@ jobs:
           cd /home/ubuntu/
           docker-compose stop draw-service
           docker-compose rm -f draw-service
+          docker image prune -af
           docker-compose pull draw-service
           docker-compose up -d draw-service
           EOF

@@ -42,6 +42,7 @@ jobs:
           cd /home/ubuntu/
           docker-compose stop api-gateway
           docker-compose rm -f api-gateway
+          docker image prune -af
           docker-compose pull api-gateway
           docker-compose up -d api-gateway
           EOF
