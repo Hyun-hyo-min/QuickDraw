@@ -1,0 +1,50 @@
+name: draw-service
+on:
+  push:
+    branches:
+      - draw-service
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create env file
+        run: |
+          echo SECRET_KEY=${{ secrets.SECRET_KEY }} > fastapi/draw-service/.env
+          echo BASE_URL=${{ secrets.BASE_URL }} >> fastapi/draw-service/.env
+          echo API_GATEWAY_URL=${{ secrets.API_GATEWAY_URL }} >> fastapi/draw-service/.env
+          echo DRAW_DB_URL=${{ secrets.DB_URL }}/draw >> fastapi/draw-service/.env
+          echo REDIS_HOST=${{ secrets.REDIS_HOST }} >> fastapi/draw-service/.env
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+
+      - name: Build and Push Docker Image
+        run: |
+          cd fastapi/draw-service
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/quickdraw-draw-service .
+          docker push ${{ secrets.DOCKER_USERNAME }}/quickdraw-draw-service
+
+      - name: Deploy
+        run: |
+          set -eux
+          echo "${{secrets.SSH_PRIVATE_KEY}}" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+
+          ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ubuntu@${{ secrets.SERVER_PUBLIC_IP }} << EOF
+          set -eux
+          cd /home/ubuntu/
+          docker-compose stop draw-service
+          docker-compose rm -f draw-service
+          docker-compose pull draw-service
+          docker-compose up -d draw-service
+          EOF
+
+          rm /tmp/ssh_key
