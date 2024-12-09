@@ -1,0 +1,49 @@
+name: api-gateway
+on:
+  pull_request:
+    branches:
+      - api-gateway
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create env file
+        run: |
+          echo BASE_URL=${{ secrets.BASE_URL }} > fastapi/api-gateway/.env
+          echo USER_SERVICE_URL=${{ secrets.USER_SERVICE_URL }} >> fastapi/api-gateway/.env
+          echo ROOM_SERVICE_URL=${{ secrets.ROOM_SERVICE_URL }} >> fastapi/api-gateway/.env
+          echo DRAW_SERVICE_URL=${{ secrets.DRAW_SERVICE_URL }} >> fastapi/api-gateway/.env
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+
+      - name: Build and Push Docker Image
+        run: |
+          cd fastapi/api-gateway
+          docker build -t hyomin2677/quickdraw-api-gateway .
+          docker push hyomin2677/quickdraw-api-gateway
+
+      - name: Deploy
+        run: |
+          set -eux
+          echo "${SSH_PRIVATE_KEY}" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+
+          ssh -i /tmp/ssh_key -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ubuntu@${{ secrets.SERVER_PUBLIC_IP }} << EOF
+          set -eux
+          cd /home/ubuntu/
+          docker-compose stop quickdraw-api-gateway
+          docker-compose rm -f quickdraw-api-gateway
+          docker-compose pull quickdraw-api-gateway
+          docker-compose up -d quickdraw-api-gateway
+          EOF
+
+          rm /tmp/ssh_key

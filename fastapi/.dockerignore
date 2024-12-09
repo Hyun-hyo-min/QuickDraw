@@ -1,5 +1,0 @@
-locustfile.py
-app/tests/
-app/test_main.py
-sqlite3.db
-venv/
