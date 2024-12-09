@@ -1,8 +1,8 @@
+from fastapi import APIRouter, WebSocket, Request, Response, WebSocketDisconnect, HTTPException
 import httpx
 import websockets
 import asyncio
 import logging
-from fastapi import APIRouter, WebSocket, Request, Response, WebSocketDisconnect, HTTPException, WebSocketState
 from app.config import settings
 
 router = APIRouter()
@@ -73,8 +73,7 @@ async def proxy_websocket(service: str, path: str, websocket: WebSocket):
     try:
         async with websockets.connect(service_ws_url) as service_ws:
             await websocket.accept()
-            logger.info(f"WebSocket connection established with {
-                        service_ws_url}")
+            logger.info(f"WebSocket connection established with {service_ws_url}")
 
             async def forward_to_service():
                 try:
@@ -88,19 +87,21 @@ async def proxy_websocket(service: str, path: str, websocket: WebSocket):
                 try:
                     async for message in service_ws:
                         await websocket.send_text(message)
-                except WebSocketDisconnect:
+                except websockets.ConnectionClosed:
                     logger.info("Service WebSocket disconnected")
                     await websocket.close()
 
             await asyncio.gather(forward_to_service(), forward_to_client())
 
     except WebSocketDisconnect:
-        logger.info("WebSocket disconnected by client or service")
+        logger.info("WebSocket disconnected by client")
+    except websockets.ConnectionClosed:
+        logger.info("WebSocket disconnected by service")
     except Exception as e:
         logger.error(f"WebSocket Proxy Error: {e}", exc_info=True)
-        if websocket.client_state == WebSocketState.CONNECTED:
-            await websocket.close(code=1011)
+        await websocket.close(code=1011)
     finally:
-        if websocket.client_state == WebSocketState.CONNECTED:
-            logger.info("Closing WebSocket connection")
+        try:
             await websocket.close()
+        except Exception as e:
+            logger.error(f"Error while closing WebSocket: {e}", exc_info=True)
