@@ -16,6 +16,7 @@ jobs:
         run: |
           echo SECRET_KEY=${{ secrets.SECRET_KEY }} > fastapi/room-service/.env
           echo BASE_URL=${{ secrets.BASE_URL }} >> fastapi/room-service/.env
+          echo API_GATEWAY_URL=${{ secrets.API_GATEWAY_URL }} >> fastapi/room-service/.env
           echo ROOM_DB_URL=${{ secrets.DB_URL }}/room >> fastapi/room-service/.env
           echo REDIS_HOST=${{ secrets.REDIS_HOST }} >> fastapi/room-service/.env
 
