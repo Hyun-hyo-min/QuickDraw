@@ -1,6 +1,6 @@
 name: api-gateway
 on:
-  pull_request:
+  push:
     branches:
       - api-gateway
 
