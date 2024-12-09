@@ -2,7 +2,7 @@ import httpx
 import websockets
 import asyncio
 import logging
-from fastapi import APIRouter, WebSocket, Request, Response, WebSocketDisconnect, HTTPException
+from fastapi import APIRouter, WebSocket, Request, Response, WebSocketDisconnect, HTTPException, WebSocketState
 from app.config import settings
 
 router = APIRouter()
@@ -10,10 +10,11 @@ router = APIRouter()
 SERVICE_URLS = {
     "user": settings.USER_SERVICE_URL,
     "room": settings.ROOM_SERVICE_URL,
-    "draw": settings.DRAW_SERVICE_URL 
+    "draw": settings.DRAW_SERVICE_URL
 }
 
 logger = logging.getLogger(__name__)
+
 
 @router.api_route("/api/v1/{service}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 @router.api_route("/api/v1/{service}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
@@ -59,7 +60,6 @@ async def proxy_request(request: Request, service: str, path: str = ""):
         ) from exc
 
 
-
 @router.websocket("/ws/{service}/{path:path}")
 async def proxy_websocket(service: str, path: str, websocket: WebSocket):
     service_url = SERVICE_URLS.get(service)
@@ -71,24 +71,36 @@ async def proxy_websocket(service: str, path: str, websocket: WebSocket):
     service_ws_url = service_url.replace("http", "ws") + f"/{path}"
 
     try:
-
         async with websockets.connect(service_ws_url) as service_ws:
             await websocket.accept()
             logger.info(f"WebSocket connection established with {
                         service_ws_url}")
 
             async def forward_to_service():
-                async for message in websocket.iter_text():
-                    await service_ws.send(message)
+                try:
+                    async for message in websocket.iter_text():
+                        await service_ws.send(message)
+                except WebSocketDisconnect:
+                    logger.info("Client WebSocket disconnected")
+                    await service_ws.close()
 
             async def forward_to_client():
-                async for message in service_ws:
-                    await websocket.send_text(message)
+                try:
+                    async for message in service_ws:
+                        await websocket.send_text(message)
+                except WebSocketDisconnect:
+                    logger.info("Service WebSocket disconnected")
+                    await websocket.close()
 
             await asyncio.gather(forward_to_service(), forward_to_client())
 
     except WebSocketDisconnect:
-        logger.info("WebSocket disconnected by client")
+        logger.info("WebSocket disconnected by client or service")
     except Exception as e:
-        await websocket.close(code=1011)
         logger.error(f"WebSocket Proxy Error: {e}", exc_info=True)
+        if websocket.client_state == WebSocketState.CONNECTED:
+            await websocket.close(code=1011)
+    finally:
+        if websocket.client_state == WebSocketState.CONNECTED:
+            logger.info("Closing WebSocket connection")
+            await websocket.close()
